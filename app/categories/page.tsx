@@ -41,9 +41,9 @@ export default function CategoriesPage() {
   async function checkAuth() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push('/login'); return; }
-    const { data: memberData, error } = await supabase
+    const { data: membersArr, error } = await supabase
       .from('household_members').select('household_id').eq('user_id', user.id).limit(1);
-    const memberData = members?.[0] ?? null;
+    const memberData = membersArr?.[0] ?? null;
     if (!memberData) { router.push('/setup'); return; }
     setHouseholdId(memberData.household_id);
     loadCategories(memberData.household_id);
