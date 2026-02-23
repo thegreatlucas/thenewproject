@@ -28,11 +28,12 @@ export default function CreditCardsPage() {
       if (!user) { router.push('/login'); return; }
       setUserId(user.id);
 
-      const { data: member } = await supabase
+      const { data: members } = await supabase
         .from('household_members')
         .select('household_id')
         .eq('user_id', user.id)
-        .single();
+        .limit(1);
+      const member = members?.[0] ?? null;
 
       if (!member) { router.push('/setup'); return; }
       setHouseholdId(member.household_id);
@@ -67,7 +68,7 @@ export default function CreditCardsPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data: member } = await supabase
+    const { data: members } = await supabase
       .from('household_members')
       .select('household_id')
       .eq('user_id', user.id)

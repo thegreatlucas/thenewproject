@@ -42,10 +42,10 @@ export default function AnalyticsPage() {
         .from('household_members')
         .select('household_id')
         .eq('user_id', user.id)
-        .limit(1)
-        .single();
+        .limit(1);
 
-      if (members) setHouseholdId(members.household_id);
+      const member = Array.isArray(members) ? members[0] : members;
+      if (member) setHouseholdId(member.household_id);
       setLoading(false);
     }
     loadHousehold();

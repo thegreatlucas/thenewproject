@@ -28,11 +28,12 @@ export default function ClosingsPage() {
     if (!user) { router.push('/login'); return; }
     setUserId(user.id);
 
-    const { data: member } = await supabase
+    const { data: members } = await supabase
       .from('household_members')
       .select('household_id, households(close_mode)')
       .eq('user_id', user.id)
-      .single();
+      .limit(1);
+    const member = members?.[0] ?? null;
 
     if (!member) { router.push('/setup'); return; }
 

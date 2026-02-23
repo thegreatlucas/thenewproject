@@ -20,7 +20,7 @@ export default function BottomNav() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data: member } = await supabase
+    const { data: members } = await supabase
       .from('household_members')
       .select('household_id')
       .eq('user_id', user.id)
