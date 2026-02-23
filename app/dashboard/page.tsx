@@ -301,13 +301,13 @@ export default function Dashboard() {
           padding: 16,
         }}>
           <div style={{
-            backgroundColor: 'white', borderRadius: 16, padding: 32,
+            backgroundColor: 'var(--surface)', borderRadius: 16, padding: 32,
             maxWidth: 360, width: '100%', boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
           }}>
             <div style={{ textAlign: 'center', marginBottom: 24 }}>
               <div style={{ fontSize: 40, marginBottom: 8 }}>🔐</div>
               <h2 style={{ margin: 0, fontSize: 20 }}>Digite seu PIN</h2>
-              <p style={{ margin: '8px 0 0', color: '#666', fontSize: 14 }}>
+              <p style={{ margin: '8px 0 0', color: 'var(--text3)', fontSize: 14 }}>
                 Para descriptografar seus dados financeiros
               </p>
             </div>
@@ -351,7 +351,7 @@ export default function Dashboard() {
               onClick={() => setShowPinModal(false)}
               style={{
                 width: '100%', marginTop: 10, padding: '10px',
-                backgroundColor: 'transparent', color: '#999',
+                backgroundColor: 'transparent', color: 'var(--text-muted)',
                 border: 'none', cursor: 'pointer', fontSize: 13,
               }}
             >
@@ -443,16 +443,16 @@ export default function Dashboard() {
 
         {/* Orçamento do mês */}
         {budgetSummary && (
-          <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <span style={{ fontWeight: 'bold', fontSize: 14 }}>💰 Orçamento do mês</span>
+              <span style={{ fontWeight: 'bold', fontSize: 14, color: 'var(--text)' }}>💰 Orçamento do mês</span>
               <Link href="/budgets" style={{ fontSize: 12, color: '#3498db' }}>Ver detalhes →</Link>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#666', marginBottom: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--text3)', marginBottom: 6 }}>
               <span>R$ {budgetSummary.spent.toFixed(2)} gasto</span>
               <span>R$ {budgetSummary.total.toFixed(2)} orçado</span>
             </div>
-            <div style={{ width: '100%', height: 8, backgroundColor: '#f0f0f0', borderRadius: 10, overflow: 'hidden' }}>
+            <div style={{ width: '100%', height: 8, backgroundColor: 'var(--bg3)', borderRadius: 10, overflow: 'hidden' }}>
               <div style={{
                 width: `${Math.min((budgetSummary.spent / budgetSummary.total) * 100, 100)}%`,
                 height: '100%',
@@ -470,9 +470,9 @@ export default function Dashboard() {
 
         {/* Top categorias do mês */}
         {topCategories.length > 0 && (
-          <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <span style={{ fontWeight: 'bold', fontSize: 14 }}>📊 Top categorias este mês</span>
+              <span style={{ fontWeight: 'bold', fontSize: 14, color: 'var(--text)' }}>📊 Top categorias este mês</span>
               <Link href="/analytics" style={{ fontSize: 12, color: '#3498db' }}>Ver tudo →</Link>
             </div>
             {topCategories.map((cat, i) => {
@@ -481,9 +481,9 @@ export default function Dashboard() {
                 <div key={i} style={{ marginBottom: i < topCategories.length - 1 ? 12 : 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
                     <span>{cat.icon} {cat.name}</span>
-                    <span style={{ fontWeight: 'bold' }}>R$ {cat.amount.toFixed(2)} <span style={{ color: '#999', fontWeight: 'normal' }}>({pct.toFixed(0)}%)</span></span>
+                    <span style={{ fontWeight: 'bold' }}>R$ {cat.amount.toFixed(2)} <span style={{ color: 'var(--text-muted)', fontWeight: 'normal' }}>({pct.toFixed(0)}%)</span></span>
                   </div>
-                  <div style={{ width: '100%', height: 5, backgroundColor: '#f0f0f0', borderRadius: 10, overflow: 'hidden' }}>
+                  <div style={{ width: '100%', height: 5, backgroundColor: 'var(--bg3)', borderRadius: 10, overflow: 'hidden' }}>
                     <div style={{ width: `${pct}%`, height: '100%', backgroundColor: cat.color || '#3498db', borderRadius: 10 }} />
                   </div>
                 </div>
@@ -503,8 +503,8 @@ export default function Dashboard() {
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontWeight: 'bold', fontSize: 14 }}>🤝 Acerto de contas</div>
-                  <div style={{ fontSize: 13, color: '#666', marginTop: 4 }}>
+                  <div style={{ fontWeight: 'bold', fontSize: 14, color: 'var(--text)' }}>🤝 Acerto de contas</div>
+                  <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 4 }}>
                     {balance
                       ? (balance.iOwe
                         ? `Você deve R$ ${balance.amount.toFixed(2)} para ${partnerName}`
@@ -512,7 +512,7 @@ export default function Dashboard() {
                       : `Você e ${partnerName} estão quites! 🎉`}
                   </div>
                 </div>
-                <span style={{ color: '#999', fontSize: 18 }}>→</span>
+                <span style={{ color: 'var(--text-muted)', fontSize: 18 }}>→</span>
               </div>
             </div>
           </Link>
@@ -520,15 +520,15 @@ export default function Dashboard() {
 
         {/* Próximas recorrências */}
         {upcomingRecurrences.length > 0 && (
-          <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <span style={{ fontWeight: 'bold', fontSize: 14 }}>🔁 Próximas contas (7 dias)</span>
+              <span style={{ fontWeight: 'bold', fontSize: 14, color: 'var(--text)' }}>🔁 Próximas contas (7 dias)</span>
               <Link href="/recurrences" style={{ fontSize: 12, color: '#3498db' }}>Ver todas →</Link>
             </div>
             {upcomingRecurrences.map((r) => {
               const overdue = r.next_date <= today;
               return (
-                <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f5f5f5' }}>
+                <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border2)' }}>
                   <div>
                     <span style={{ fontSize: 14 }}>🔁 {r.name || '—'}</span>
                     <div style={{ fontSize: 12, color: overdue ? '#e74c3c' : '#999' }}>
@@ -546,9 +546,9 @@ export default function Dashboard() {
 
         {/* Metas em progresso */}
         {activeGoals.length > 0 && (
-          <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: 16, marginBottom: 20 }}>
+          <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: 16, marginBottom: 20 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <span style={{ fontWeight: 'bold', fontSize: 14 }}>🎯 Metas em andamento</span>
+              <span style={{ fontWeight: 'bold', fontSize: 14, color: 'var(--text)' }}>🎯 Metas em andamento</span>
               <Link href="/goals" style={{ fontSize: 12, color: '#3498db' }}>Ver todas →</Link>
             </div>
             {activeGoals.map((g) => {
@@ -557,9 +557,9 @@ export default function Dashboard() {
                 <div key={g.id} style={{ marginBottom: 12 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
                     <span>{g.type === 'shared' ? '👫' : '👤'} {g.name}</span>
-                    <span style={{ color: '#666' }}>R$ {Number(g.current_amount).toFixed(0)} / R$ {Number(g.target_amount).toFixed(0)}</span>
+                    <span style={{ color: 'var(--text3)' }}>R$ {Number(g.current_amount).toFixed(0)} / R$ {Number(g.target_amount).toFixed(0)}</span>
                   </div>
-                  <div style={{ width: '100%', height: 6, backgroundColor: '#f0f0f0', borderRadius: 10, overflow: 'hidden' }}>
+                  <div style={{ width: '100%', height: 6, backgroundColor: 'var(--bg3)', borderRadius: 10, overflow: 'hidden' }}>
                     <div style={{ width: `${pct}%`, height: '100%', backgroundColor: '#3498db', borderRadius: 10 }} />
                   </div>
                 </div>
@@ -569,8 +569,8 @@ export default function Dashboard() {
         )}
 
         {/* Navegação rápida */}
-        <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 20 }}>
-          <p style={{ fontSize: 12, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 }}>Módulos</p>
+        <div style={{ borderTop: '1px solid var(--border2)', paddingTop: 20 }}>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 }}>Módulos</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
             {[
               { href: '/transactions', icon: '💳', label: 'Gastos' },
@@ -585,15 +585,17 @@ export default function Dashboard() {
               { href: '/balances', icon: '🤝', label: 'Acerto' },
               { href: '/categories', icon: '🏷️', label: 'Categorias' },
               { href: '/simulator', icon: '🧮', label: 'Simulador' },
+              { href: '/closings', icon: '📋', label: 'Fechamentos' },
+              { href: '/export', icon: '📤', label: 'Exportar' },
               { href: '/setup', icon: '⚙️', label: 'Configurar' },
             ].map(({ href, icon, label }) => (
               <Link key={href} href={href} style={{ textDecoration: 'none' }}>
                 <div style={{
-                  padding: '12px 4px', border: '1px solid #eee', borderRadius: 10,
-                  textAlign: 'center', cursor: 'pointer', backgroundColor: 'white',
+                  padding: '12px 4px', border: '1px solid var(--border2)', borderRadius: 10,
+                  textAlign: 'center', cursor: 'pointer', backgroundColor: 'var(--surface)',
                 }}>
                   <div style={{ fontSize: 20, marginBottom: 4 }}>{icon}</div>
-                  <div style={{ fontSize: 11, color: '#555' }}>{label}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text2)' }}>{label}</div>
                 </div>
               </Link>
             ))}

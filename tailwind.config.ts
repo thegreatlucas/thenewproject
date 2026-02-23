@@ -6,12 +6,14 @@ const config: Config = {
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  // ✅ CORRIGIDO: dark mode via data-theme="dark" no <html>
+  // Isso faz as classes dark: do Tailwind funcionarem junto com o ThemeProvider
+  darkMode: ['attribute', 'data-theme'],
   theme: {
     extend: {
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gradient-conic':
-          'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
+        'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
       },
     },
   },

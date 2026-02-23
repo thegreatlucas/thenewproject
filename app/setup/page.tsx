@@ -149,7 +149,7 @@ export default function SetupPage() {
     setLoading(false);
     // ✅ CORRIGIDO: navegação hard para forçar remount do FinanceGroupProvider
     // Isso garante que o contexto busca os grupos novamente do zero
-    window.location.href = '/dashboard';
+    window.location.href = '/onboarding';
   }
 
   // ── Join household ──────────────────────────────────────────
@@ -180,7 +180,7 @@ export default function SetupPage() {
 
     setLoading(false);
     // ✅ CORRIGIDO: navegação hard para forçar remount do FinanceGroupProvider
-    window.location.href = '/dashboard';
+    window.location.href = '/onboarding';
   }
 
   // ── Leave household ──────────────────────────────────────────

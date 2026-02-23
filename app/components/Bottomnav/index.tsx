@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 
-const HIDDEN_PATHS = ['/', '/login', '/setup'];
+const HIDDEN_PATHS = ['/', '/login', '/setup', '/onboarding'];
 
 export default function BottomNav() {
   const pathname = usePathname();
@@ -20,12 +20,11 @@ export default function BottomNav() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data: members2 } = await supabase
+    const { data: member } = await supabase
       .from('household_members')
       .select('household_id')
       .eq('user_id', user.id)
-      .limit(1);
-    const member = members2?.[0] ?? null;
+      .single();
 
     if (!member) return;
     const hid = member.household_id;
@@ -115,8 +114,8 @@ export default function BottomNav() {
       left: 0,
       right: 0,
       height: 64,
-      backgroundColor: 'white',
-      borderTop: '1px solid #e5e7eb',
+      backgroundColor: 'var(--surface)',
+      borderTop: '1px solid var(--border)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-around',
@@ -154,7 +153,7 @@ export default function BottomNav() {
                     height: 18,
                     borderRadius: '50%',
                     backgroundColor: '#e74c3c',
-                    border: '2px solid white',
+                    border: '2px solid var(--surface)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -197,13 +196,13 @@ export default function BottomNav() {
                     height: 9,
                     borderRadius: '50%',
                     backgroundColor: '#e74c3c',
-                    border: '1.5px solid white',
+                    border: '1.5px solid var(--surface)',
                   }} />
                 )}
               </div>
               <span style={{
                 fontSize: 10,
-                color: isActive ? '#2ecc71' : '#9ca3af',
+                color: isActive ? '#2ecc71' : 'var(--text-muted)',
                 fontWeight: isActive ? 700 : 400,
                 letterSpacing: 0.2,
               }}>
