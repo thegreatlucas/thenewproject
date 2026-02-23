@@ -62,8 +62,8 @@ export default function AnalyticsPage() {
   }, [householdId, period]);
 
   async function loadAnalytics(hid: string) {
-      const now = new Date();
-      let startDate: Date;
+  const now = new Date();
+  let startDate: Date;
 
       switch (period) {
         case '3months': startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1); break;
@@ -153,9 +153,6 @@ export default function AnalyticsPage() {
         generateInsights(catData, total, avgDay, monthlyArray, totalInterest, interestTxs);
       }
     }
-
-    loadAnalytics();
-  }, [householdId, period]);
 
   function generateInsights(
     catData: CategoryData[],
