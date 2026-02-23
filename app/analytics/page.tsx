@@ -33,15 +33,19 @@ export default function AnalyticsPage() {
   useEffect(() => {
     async function bootstrap() {
       const { data: { user } } = await supabase.auth.getUser();
+      console.log('[Analytics] user:', user?.id ?? 'NULL - não autenticado');
       if (!user) { router.push('/login'); return; }
 
-      const { data: rows } = await supabase
+      const { data: rows, error: memberError } = await supabase
         .from('household_members')
         .select('household_id')
         .eq('user_id', user.id)
         .limit(1);
 
-      setHouseholdId(rows?.[0]?.household_id ?? null);
+      console.log('[Analytics] household_members rows:', rows, 'error:', memberError);
+      const hid = rows?.[0]?.household_id ?? null;
+      console.log('[Analytics] householdId resolvido:', hid);
+      setHouseholdId(hid);
       setLoading(false);
     }
     bootstrap();
@@ -59,15 +63,19 @@ export default function AnalyticsPage() {
       default:        startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
     }
 
+    console.log('[Analytics] buscando — hid:', hid, '| from:', startDate.toISOString().slice(0,10), '| period:', selectedPeriod);
+
     const { data: transactions, error } = await supabase
       .from('transactions')
       .select('*, categories(name, icon, color)')
       .eq('household_id', hid)
-      .gte('date', startDate.toISOString().split('T')[0])
-      .order('date', { ascending: true });
+      .gte('created_at', startDate.toISOString())
+      .order('created_at', { ascending: true });
+
+    console.log('[Analytics] resultado — count:', transactions?.length ?? 0, '| error:', error?.message ?? null);
 
     if (error) {
-      console.error('[Analytics] erro:', error.message);
+      console.error('[Analytics] erro na query:', error.message);
       setDataLoading(false);
       return;
     }
@@ -97,7 +105,7 @@ export default function AnalyticsPage() {
     // Mensal
     const monthMap = new Map<string, number>();
     transactions.forEach((t) => {
-      const m = t.date.slice(0, 7);
+      const m = (t.created_at || t.invoice_month || '').slice(0, 7);
       monthMap.set(m, (monthMap.get(m) || 0) + Number(t.amount));
     });
     const monthlyArr = Array.from(monthMap.entries())
@@ -315,7 +323,7 @@ export default function AnalyticsPage() {
                         <div>
                           <div style={{ fontWeight: 600, fontSize: 14 }}>{t.description || '—'}</div>
                           <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>
-                            {new Date(t.date + 'T12:00:00').toLocaleDateString('pt-BR')}
+                            {new Date(t.created_at).toLocaleDateString('pt-BR')}
                             {t.installments_count > 1 && ` · ${t.installments_count}x R$ ${Number(t.installment_value).toFixed(2)}`}
                           </div>
                         </div>
