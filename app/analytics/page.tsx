@@ -44,17 +44,24 @@ export default function AnalyticsPage() {
         .eq('user_id', user.id)
         .limit(1);
 
-      const member = Array.isArray(members) ? members[0] : members;
-      if (member) setHouseholdId(member.household_id);
+      const hid = members?.[0]?.household_id ?? null;
+      if (!hid) { setLoading(false); return; }
+
+      // Carrega analytics direto aqui, sem depender do segundo useEffect
+      setHouseholdId(hid);
+      await loadAnalytics(hid);
       setLoading(false);
     }
     loadHousehold();
-  }, [router]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!householdId) return;
+    loadAnalytics(householdId);
+  }, [householdId, period]);
 
-    async function loadAnalytics() {
+  async function loadAnalytics(hid: string) {
       const now = new Date();
       let startDate: Date;
 
@@ -70,7 +77,7 @@ export default function AnalyticsPage() {
       const { data: transactions, error } = await supabase
         .from('transactions')
         .select('*, categories(name, icon, color)')
-        .eq('household_id', householdId)
+        .eq('household_id', hid)
         .gte('date', startDateStr)
         .order('date', { ascending: true });
 
