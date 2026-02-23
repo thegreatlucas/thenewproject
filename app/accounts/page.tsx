@@ -34,13 +34,13 @@ export default function AccountsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/login'); return; }
 
-      const { data: members } = await supabase
+      const { data: memberRows } = await supabase
         .from('household_members')
         .select('household_id')
         .eq('user_id', user.id)
         .limit(1);
-      const member = members?.[0] ?? null;
 
+      const member = memberRows?.[0] ?? null;
       if (!member) { router.push('/setup'); return; }
       setHouseholdId(member.household_id);
       await loadAccounts(member.household_id);
@@ -93,13 +93,13 @@ export default function AccountsPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data: members2 } = await supabase
+    const { data: memberRows2 } = await supabase
       .from('household_members')
       .select('household_id')
       .eq('user_id', user.id)
       .limit(1);
-    const member = members2?.[0] ?? null;
 
+    const member = memberRows2?.[0] ?? null;
     if (!member) return;
 
     const payload = {
@@ -189,7 +189,7 @@ export default function AccountsPage() {
 
       {/* Formulário */}
       {showForm && (
-        <form onSubmit={handleSubmit} style={{ backgroundColor: '#f5f5f5', padding: 20, borderRadius: 8, marginBottom: 24 }}>
+        <form onSubmit={handleSubmit} style={{ backgroundColor: 'var(--bg2)', padding: 20, borderRadius: 8, marginBottom: 24 }}>
           <h3 style={{ marginTop: 0 }}>{editingId ? 'Editar Conta' : 'Nova Conta'}</h3>
 
           <div style={{ marginBottom: 16 }}>
@@ -198,7 +198,7 @@ export default function AccountsPage() {
               type="text" value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Ex: Nubank, VR Ticket, Bradesco..."
-              style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 4, border: '1px solid #ccc' }}
+              style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 4, border: '1px solid var(--border)' }}
               required
             />
           </div>
@@ -246,21 +246,21 @@ export default function AccountsPage() {
       {/* Contas de dinheiro */}
       {cashAccounts.length > 0 && (
         <div style={{ marginBottom: 24 }}>
-          <h2 style={{ fontSize: 16, color: '#666', marginBottom: 12 }}>💵 Contas bancárias</h2>
+          <h2 style={{ fontSize: 16, color: 'var(--text3)', marginBottom: 12 }}>💵 Contas bancárias</h2>
           {cashAccounts.map((acc) => {
             const balance = balances[acc.id] ?? 0;
             return (
-              <div key={acc.id} style={{ border: '1px solid #ddd', padding: 16, marginBottom: 10, borderRadius: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'white' }}>
+              <div key={acc.id} style={{ border: '1px solid var(--border)', padding: 16, marginBottom: 10, borderRadius: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--surface)' }}>
                 <div>
                   <div style={{ fontWeight: 'bold', fontSize: 17 }}>{acc.name}</div>
-                  <div style={{ fontSize: 13, color: '#666' }}>{getTypeLabel(acc.type)}</div>
+                  <div style={{ fontSize: 13, color: 'var(--text3)' }}>{getTypeLabel(acc.type)}</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontWeight: 'bold', fontSize: 18, color: getBalanceColor(balance, acc.type) }}>
                       R$ {balance.toFixed(2)}
                     </div>
-                    <div style={{ fontSize: 11, color: '#999' }}>saldo calculado</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>saldo calculado</div>
                   </div>
                   <button onClick={() => startEdit(acc)}
                     style={{ padding: '8px 12px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}>✏️</button>
@@ -276,11 +276,11 @@ export default function AccountsPage() {
       {/* Contas de vale */}
       {voucherAccounts.length > 0 && (
         <div style={{ marginBottom: 24 }}>
-          <h2 style={{ fontSize: 16, color: '#666', marginBottom: 12 }}>🍽️ Vale Refeição / Alimentação</h2>
+          <h2 style={{ fontSize: 16, color: 'var(--text3)', marginBottom: 12 }}>🍽️ Vale Refeição / Alimentação</h2>
           {voucherAccounts.map((acc) => {
             const balance = balances[acc.id] ?? 0;
             return (
-              <div key={acc.id} style={{ border: '1px solid #f39c12', padding: 16, marginBottom: 10, borderRadius: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fffbf0' }}>
+              <div key={acc.id} style={{ border: '1px solid #f39c12', padding: 16, marginBottom: 10, borderRadius: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg2)' }}>
                 <div>
                   <div style={{ fontWeight: 'bold', fontSize: 17 }}>{acc.name}</div>
                   <div style={{ fontSize: 13, color: '#e67e22' }}>{getTypeLabel(acc.type)} · Uso restrito alimentação</div>
@@ -290,7 +290,7 @@ export default function AccountsPage() {
                     <div style={{ fontWeight: 'bold', fontSize: 18, color: balance < 0 ? '#e74c3c' : '#f39c12' }}>
                       R$ {balance.toFixed(2)}
                     </div>
-                    <div style={{ fontSize: 11, color: '#999' }}>saldo calculado</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>saldo calculado</div>
                   </div>
                   <button onClick={() => startEdit(acc)}
                     style={{ padding: '8px 12px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}>✏️</button>
@@ -304,7 +304,7 @@ export default function AccountsPage() {
       )}
 
       {accounts.length === 0 && (
-        <p style={{ textAlign: 'center', color: '#666', padding: 32 }}>Nenhuma conta cadastrada ainda.</p>
+        <p style={{ textAlign: 'center', color: 'var(--text3)', padding: 32 }}>Nenhuma conta cadastrada ainda.</p>
       )}
 
       <div style={{ marginTop: 24 }}>
