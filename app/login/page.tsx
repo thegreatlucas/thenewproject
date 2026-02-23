@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -12,6 +12,14 @@ export default function LoginPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [accountDeleted, setAccountDeleted] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('deleted') === 'true') {
+      setAccountDeleted(true);
+    }
+  }, [searchParams]);
 
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
@@ -89,6 +97,21 @@ export default function LoginPage() {
             style={{ width: '100%', padding: 12, fontSize: 15, borderRadius: 8, border: '1px solid #ddd' }}
           />
         </div>
+
+
+        {accountDeleted && (
+          <div style={{
+            backgroundColor: '#d4edda', border: '1px solid #b8dfc7',
+            borderRadius: 12, padding: '16px 20px', marginBottom: 24,
+            color: '#1a5e34', fontSize: 14, lineHeight: 1.6,
+          }}>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>✅ Conta excluída com sucesso</div>
+            <div>
+              Em conformidade com a <strong>LGPD (Art. 18, VI)</strong>, todos os seus dados
+              pessoais foram eliminados permanentemente dos nossos servidores.
+            </div>
+          </div>
+        )}
 
         {errorMsg && (
           <div style={{ color: '#e74c3c', backgroundColor: '#fde8e8', border: '1px solid #f5c6cb', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 14 }}>

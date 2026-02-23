@@ -196,69 +196,57 @@ export default function SetupPage() {
     setSuccessMsg(null);
   }
 
-  // ── Delete account ──────────────────────────────────────────
+  // ── Delete account (LGPD Art. 18 VI) ────────────────────────
   async function handleDeleteAccount() {
-    const confirmed1 = confirm('⚠️ Tem certeza que deseja EXCLUIR sua conta permanentemente?\n\nTodos os seus dados serão apagados e esta ação não pode ser desfeita.');
+    const confirmed1 = confirm(
+      '⚠️ Tem certeza que deseja EXCLUIR sua conta permanentemente?\n\n' +
+      'Em conformidade com a LGPD (Art. 18, VI), todos os seus dados pessoais ' +
+      'serão eliminados e esta ação não pode ser desfeita.'
+    );
     if (!confirmed1) return;
 
-    const confirmed2 = confirm('🔴 ÚLTIMA CONFIRMAÇÃO\n\nSua conta e todos os dados associados serão excluídos para sempre. Continuar?');
+    const confirmed2 = confirm(
+      '🔴 ÚLTIMA CONFIRMAÇÃO\n\n' +
+      'Sua conta, perfil e todos os dados dos seus espaços financeiros exclusivos ' +
+      'serão excluídos permanentemente. Continuar?'
+    );
     if (!confirmed2) return;
 
     setLoading(true);
     setErrorMsg(null);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setLoading(false); return; }
-
     try {
-      // 1. Sair de todos os households
-      const { data: memberships } = await supabase
-        .from('household_members')
-        .select('household_id, role')
-        .eq('user_id', user.id);
-
-      for (const m of memberships || []) {
-        // Se for o único admin, deleta o household inteiro
-        const { data: otherAdmins } = await supabase
-          .from('household_members')
-          .select('user_id')
-          .eq('household_id', m.household_id)
-          .eq('role', 'admin')
-          .neq('user_id', user.id);
-
-        const { data: otherMembers } = await supabase
-          .from('household_members')
-          .select('user_id')
-          .eq('household_id', m.household_id)
-          .neq('user_id', user.id);
-
-        if (m.role === 'admin' && (!otherAdmins || otherAdmins.length === 0) && (!otherMembers || otherMembers.length === 0)) {
-          // Household só tem este usuário → deletar tudo
-          await supabase.from('transactions').delete().eq('household_id', m.household_id);
-          await supabase.from('incomes').delete().eq('household_id', m.household_id);
-          await supabase.from('goals').delete().eq('household_id', m.household_id);
-          await supabase.from('budgets').delete().eq('household_id', m.household_id);
-          await supabase.from('accounts').delete().eq('household_id', m.household_id);
-          await supabase.from('categories').delete().eq('household_id', m.household_id);
-          await supabase.from('recurrence_rules').delete().eq('household_id', m.household_id);
-          await supabase.from('credit_cards').delete().eq('household_id', m.household_id);
-          await supabase.from('balances').delete().eq('household_id', m.household_id);
-          await supabase.from('financings').delete().eq('household_id', m.household_id);
-          await supabase.from('households').delete().eq('id', m.household_id);
-        } else {
-          // Só remove o membro
-          await supabase.from('household_members').delete()
-            .eq('household_id', m.household_id).eq('user_id', user.id);
-        }
+      // Obter o JWT do usuário atual para autenticar a Edge Function
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setErrorMsg('Sessão expirada. Faça login novamente.');
+        setLoading(false);
+        return;
       }
 
-      // 2. Deletar perfil
-      await supabase.from('profiles').delete().eq('id', user.id);
+      // Chamar a Edge Function delete-account
+      // Ela usa o service_role para deletar o registro de auth (Admin API)
+      // e apaga todos os dados pessoais em conformidade com a LGPD
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/delete-account`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
-      // 3. Chamar função de deleção de conta via API do Supabase
-      // O Supabase não permite deletar o próprio usuário pelo client SDK diretamente.
-      // Usamos signOut e redirecionamos para uma rota de API ou o admin API.
-      // Como solução client-side: fazemos sign out e marcamos para deleção.
+      const result = await res.json();
+
+      if (!res.ok || !result.success) {
+        setErrorMsg(result.message || result.error || 'Erro ao excluir conta. Tente novamente.');
+        setLoading(false);
+        return;
+      }
+
+      // Limpar estado local e redirecionar
       await supabase.auth.signOut();
       window.location.href = '/login?deleted=true';
 
