@@ -60,7 +60,8 @@ export default function RecurrencesPage() {
       setLoading(false);
     }
     init();
-  }, [activeGroupId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function loadRecurrences(hid: string) {
     const { data } = await supabase

@@ -28,7 +28,14 @@ export default function TransactionsPage() {
       setUser(user);
       if (!user) { router.push('/login'); return; }
 
-      const hid = activeGroupId;
+      // Busca direto no banco para evitar race condition com o contexto
+      const hid = activeGroupId || await supabase
+        .from('household_members')
+        .select('household_id')
+        .eq('user_id', user.id)
+        .limit(1)
+        .then(({ data }) => data?.[0]?.household_id ?? null);
+
       if (!hid) { router.push('/setup'); return; }
 
       setHouseholdId(hid);
@@ -37,7 +44,8 @@ export default function TransactionsPage() {
       setLoading(false);
     }
     init();
-  }, [router, activeGroupId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => { if (householdId) loadTransactions(); }, [householdId, filterPeriod, filterCategory]);
 

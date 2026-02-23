@@ -45,7 +45,12 @@ export default function NewTransaction() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/login'); return; }
       setUser(user);
-      const householdId = activeGroupId;
+      const householdId = activeGroupId || await supabase
+        .from('household_members')
+        .select('household_id')
+        .eq('user_id', user.id)
+        .limit(1)
+        .then(({ data }) => data?.[0]?.household_id ?? null);
       if (!householdId) { router.push('/setup'); return; }
 
       setSelectedHousehold(householdId);
@@ -55,7 +60,8 @@ export default function NewTransaction() {
       ]);
     }
     loadData();
-  }, [router, activeGroupId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (paymentMethod !== 'credit' || !creditCardId || !date) return;
