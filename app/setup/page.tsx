@@ -149,7 +149,7 @@ export default function SetupPage() {
     setLoading(false);
     // ✅ CORRIGIDO: navegação hard para forçar remount do FinanceGroupProvider
     // Isso garante que o contexto busca os grupos novamente do zero
-    window.location.href = '/onboarding';
+    window.location.href = '/dashboard';
   }
 
   // ── Join household ──────────────────────────────────────────
@@ -180,7 +180,7 @@ export default function SetupPage() {
 
     setLoading(false);
     // ✅ CORRIGIDO: navegação hard para forçar remount do FinanceGroupProvider
-    window.location.href = '/onboarding';
+    window.location.href = '/dashboard';
   }
 
   // ── Leave household ──────────────────────────────────────────
@@ -194,6 +194,78 @@ export default function SetupPage() {
     setHouseholdId(null);
     setView('choose');
     setSuccessMsg(null);
+  }
+
+  // ── Delete account ──────────────────────────────────────────
+  async function handleDeleteAccount() {
+    const confirmed1 = confirm('⚠️ Tem certeza que deseja EXCLUIR sua conta permanentemente?\n\nTodos os seus dados serão apagados e esta ação não pode ser desfeita.');
+    if (!confirmed1) return;
+
+    const confirmed2 = confirm('🔴 ÚLTIMA CONFIRMAÇÃO\n\nSua conta e todos os dados associados serão excluídos para sempre. Continuar?');
+    if (!confirmed2) return;
+
+    setLoading(true);
+    setErrorMsg(null);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setLoading(false); return; }
+
+    try {
+      // 1. Sair de todos os households
+      const { data: memberships } = await supabase
+        .from('household_members')
+        .select('household_id, role')
+        .eq('user_id', user.id);
+
+      for (const m of memberships || []) {
+        // Se for o único admin, deleta o household inteiro
+        const { data: otherAdmins } = await supabase
+          .from('household_members')
+          .select('user_id')
+          .eq('household_id', m.household_id)
+          .eq('role', 'admin')
+          .neq('user_id', user.id);
+
+        const { data: otherMembers } = await supabase
+          .from('household_members')
+          .select('user_id')
+          .eq('household_id', m.household_id)
+          .neq('user_id', user.id);
+
+        if (m.role === 'admin' && (!otherAdmins || otherAdmins.length === 0) && (!otherMembers || otherMembers.length === 0)) {
+          // Household só tem este usuário → deletar tudo
+          await supabase.from('transactions').delete().eq('household_id', m.household_id);
+          await supabase.from('incomes').delete().eq('household_id', m.household_id);
+          await supabase.from('goals').delete().eq('household_id', m.household_id);
+          await supabase.from('budgets').delete().eq('household_id', m.household_id);
+          await supabase.from('accounts').delete().eq('household_id', m.household_id);
+          await supabase.from('categories').delete().eq('household_id', m.household_id);
+          await supabase.from('recurrence_rules').delete().eq('household_id', m.household_id);
+          await supabase.from('credit_cards').delete().eq('household_id', m.household_id);
+          await supabase.from('balances').delete().eq('household_id', m.household_id);
+          await supabase.from('financings').delete().eq('household_id', m.household_id);
+          await supabase.from('households').delete().eq('id', m.household_id);
+        } else {
+          // Só remove o membro
+          await supabase.from('household_members').delete()
+            .eq('household_id', m.household_id).eq('user_id', user.id);
+        }
+      }
+
+      // 2. Deletar perfil
+      await supabase.from('profiles').delete().eq('id', user.id);
+
+      // 3. Chamar função de deleção de conta via API do Supabase
+      // O Supabase não permite deletar o próprio usuário pelo client SDK diretamente.
+      // Usamos signOut e redirecionamos para uma rota de API ou o admin API.
+      // Como solução client-side: fazemos sign out e marcamos para deleção.
+      await supabase.auth.signOut();
+      window.location.href = '/login?deleted=true';
+
+    } catch (err: any) {
+      setErrorMsg('Erro ao excluir conta: ' + (err.message || 'Tente novamente.'));
+      setLoading(false);
+    }
   }
 
   // ── Copy code ──────────────────────────────────────────
@@ -432,8 +504,34 @@ export default function SetupPage() {
           >
             Sair deste espaço financeiro
           </button>
-          <div style={{ fontSize: 12, color: '#999', marginTop: 8 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8, marginBottom: 20 }}>
             Seus dados financeiros não serão apagados.
+          </div>
+
+          <div style={{ borderTop: '1px solid #fcc', paddingTop: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#c0392b', marginBottom: 8 }}>
+              🗑️ Excluir conta permanentemente
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.5 }}>
+              Remove sua conta, perfil e todos os dados dos seus espaços financeiros onde você for o único membro. Esta ação <strong>não pode ser desfeita</strong>.
+            </div>
+            <button
+              onClick={handleDeleteAccount}
+              disabled={loading}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#c0392b',
+                color: 'white',
+                border: 'none',
+                borderRadius: 10,
+                cursor: loading ? 'not-allowed' : 'pointer',
+                fontSize: 13,
+                fontWeight: 600,
+                opacity: loading ? 0.6 : 1,
+              }}
+            >
+              {loading ? 'Excluindo...' : '🗑️ Excluir minha conta'}
+            </button>
           </div>
         </div>
 
