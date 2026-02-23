@@ -21,14 +21,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const initial: Theme = saved ?? (prefersDark ? 'dark' : 'light');
     setTheme(initial);
+    // ✅ Aplica ambos: data-theme (para CSS vars) e classe .dark (para Tailwind)
     document.documentElement.setAttribute('data-theme', initial);
+    document.documentElement.classList.toggle('dark', initial === 'dark');
   }, []);
 
   function toggle() {
     setTheme((prev) => {
       const next: Theme = prev === 'light' ? 'dark' : 'light';
       localStorage.setItem('rc-theme', next);
+      // ✅ Aplica ambos: data-theme (para CSS vars) e classe .dark (para Tailwind)
       document.documentElement.setAttribute('data-theme', next);
+      document.documentElement.classList.toggle('dark', next === 'dark');
       return next;
     });
   }

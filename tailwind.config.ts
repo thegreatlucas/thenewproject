@@ -6,9 +6,7 @@ const config: Config = {
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
-  // ✅ CORRIGIDO: dark mode via data-theme="dark" no <html>
-  // Isso faz as classes dark: do Tailwind funcionarem junto com o ThemeProvider
-  darkMode: ['attribute', 'data-theme'],
+  darkMode: 'class', // ✅ Tailwind v3: usa classe .dark no <html>
   theme: {
     extend: {
       backgroundImage: {
