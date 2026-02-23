@@ -1,415 +1,336 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/app/components/Header';
-import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar } from 'recharts';
+import {
+  PieChart, Pie, Cell, ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  BarChart, Bar,
+} from 'recharts';
 
-interface CategoryData {
-  name: string;
-  value: number;
-  color: string;
-  icon: string;
-}
-
-interface MonthlyData {
-  month: string;
-  amount: number;
-}
+interface CategoryData { name: string; value: number; color: string; icon: string; }
+interface MonthlyData  { month: string; amount: number; }
 
 export default function AnalyticsPage() {
-  const [householdId, setHouseholdId] = useState<string | null>(null);
-  const [categoryData, setCategoryData] = useState<CategoryData[]>([]);
-  const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
-  const [insights, setInsights] = useState<string[]>([]);
-  const [period, setPeriod] = useState('3months');
-  const [totalSpent, setTotalSpent] = useState(0);
-  const [avgPerDay, setAvgPerDay] = useState(0);
-  const [topCategory, setTopCategory] = useState('');
-  const [totalInterestPaid, setTotalInterestPaid] = useState(0);
+  const [householdId, setHouseholdId]                   = useState<string | null>(null);
+  const [categoryData, setCategoryData]                 = useState<CategoryData[]>([]);
+  const [monthlyData,  setMonthlyData]                  = useState<MonthlyData[]>([]);
+  const [insights,     setInsights]                     = useState<string[]>([]);
+  const [period,       setPeriod]                       = useState('3months');
+  const [totalSpent,   setTotalSpent]                   = useState(0);
+  const [avgPerDay,    setAvgPerDay]                    = useState(0);
+  const [topCategory,  setTopCategory]                  = useState('');
+  const [totalInterestPaid, setTotalInterestPaid]       = useState(0);
   const [interestTransactions, setInterestTransactions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading,      setLoading]                      = useState(true);
+  const [dataLoading,  setDataLoading]                  = useState(false);
   const router = useRouter();
 
+  // 1. Busca householdId uma vez
   useEffect(() => {
-    async function loadHousehold() {
+    async function bootstrap() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/login'); return; }
 
-      const { data: members } = await supabase
+      const { data: rows } = await supabase
         .from('household_members')
         .select('household_id')
         .eq('user_id', user.id)
         .limit(1);
 
-      const hid = members?.[0]?.household_id ?? null;
-      if (!hid) { setLoading(false); return; }
-
-      // Carrega analytics direto aqui, sem depender do segundo useEffect
-      setHouseholdId(hid);
-      await loadAnalytics(hid);
+      setHouseholdId(rows?.[0]?.household_id ?? null);
       setLoading(false);
     }
-    loadHousehold();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    bootstrap();
+  }, [router]);
+
+  // 2. Carrega dados sempre que hid ou período mudar
+  const loadAnalytics = useCallback(async (hid: string, selectedPeriod: string) => {
+    setDataLoading(true);
+
+    const now = new Date();
+    let startDate: Date;
+    switch (selectedPeriod) {
+      case '6months': startDate = new Date(now.getFullYear(), now.getMonth() - 6, 1); break;
+      case 'year':    startDate = new Date(now.getFullYear() - 1, now.getMonth(), 1); break;
+      default:        startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+    }
+
+    const { data: transactions, error } = await supabase
+      .from('transactions')
+      .select('*, categories(name, icon, color)')
+      .eq('household_id', hid)
+      .gte('date', startDate.toISOString().split('T')[0])
+      .order('date', { ascending: true });
+
+    if (error) {
+      console.error('[Analytics] erro:', error.message);
+      setDataLoading(false);
+      return;
+    }
+
+    if (!transactions || transactions.length === 0) {
+      setCategoryData([]); setMonthlyData([]); setInsights(['📭 Nenhum gasto neste período.']);
+      setTotalSpent(0); setAvgPerDay(0); setTotalInterestPaid(0); setInterestTransactions([]);
+      setDataLoading(false);
+      return;
+    }
+
+    // Categorias
+    const catMap = new Map<string, CategoryData>();
+    let total = 0;
+    transactions.forEach((t) => {
+      const val = Number(t.amount) || 0;
+      total += val;
+      const key = t.categories?.name || 'Sem categoria';
+      const cur = catMap.get(key);
+      catMap.set(key, { name: key, value: (cur?.value || 0) + val, color: t.categories?.color || '#95a5a6', icon: t.categories?.icon || '📁' });
+    });
+    const catData = Array.from(catMap.values()).sort((a, b) => b.value - a.value);
+    setCategoryData(catData);
+    setTotalSpent(total);
+    if (catData[0]) setTopCategory(catData[0].name);
+
+    // Mensal
+    const monthMap = new Map<string, number>();
+    transactions.forEach((t) => {
+      const m = t.date.slice(0, 7);
+      monthMap.set(m, (monthMap.get(m) || 0) + Number(t.amount));
+    });
+    const monthlyArr = Array.from(monthMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([m, amount]) => ({
+        month: new Date(m + '-02').toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }),
+        amount,
+      }));
+    setMonthlyData(monthlyArr);
+
+    // Juros
+    const interestTxs = transactions.filter(
+      (t) => t.total_with_interest != null && t.original_amount != null
+        && Number(t.total_with_interest) > Number(t.original_amount)
+    );
+    const totalInterest = interestTxs.reduce((s, t) => s + (Number(t.total_with_interest) - Number(t.original_amount)), 0);
+    setTotalInterestPaid(totalInterest);
+    setInterestTransactions(interestTxs);
+
+    // Insights
+    const days   = Math.max(1, Math.ceil((now.getTime() - startDate.getTime()) / 86400000));
+    const avgDay = total / days;
+    setAvgPerDay(avgDay);
+
+    const ins: string[] = [];
+    if (catData[0]) ins.push(`${catData[0].icon} ${((catData[0].value / total) * 100).toFixed(0)}% dos gastos em ${catData[0].name}`);
+    ins.push(`💸 Média de R$ ${avgDay.toFixed(2)} por dia`);
+    if (monthlyArr.length >= 2) {
+      const last = monthlyArr[monthlyArr.length - 1].amount;
+      const prev = monthlyArr[monthlyArr.length - 2].amount;
+      const diff = ((last - prev) / prev * 100).toFixed(0);
+      ins.push(Number(diff) > 0 ? `📈 Gastos +${diff}% no último mês` : `📉 Economia de ${Math.abs(Number(diff))}% no último mês`);
+    }
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    ins.push(`🔮 Projeção do mês: R$ ${(avgDay * daysInMonth).toFixed(2)}`);
+    if (catData.length >= 3) {
+      const top3 = ((catData.slice(0,3).reduce((s,c) => s+c.value,0) / total) * 100).toFixed(0);
+      ins.push(`🎯 ${top3}% dos gastos em apenas 3 categorias`);
+    }
+    ins.push(totalInterest > 0
+      ? `📈 R$ ${totalInterest.toFixed(2)} pagos em juros (${((totalInterest/total)*100).toFixed(1)}% do total)`
+      : '✅ Nenhum juro pago neste período');
+    setInsights(ins);
+    setDataLoading(false);
   }, []);
 
   useEffect(() => {
-    if (!householdId) return;
-    loadAnalytics(householdId);
-  }, [householdId, period]);
+    if (householdId) loadAnalytics(householdId, period);
+  }, [householdId, period, loadAnalytics]);
 
-  async function loadAnalytics(hid: string) {
-  const now = new Date();
-  let startDate: Date;
-
-      switch (period) {
-        case '3months': startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1); break;
-        case '6months': startDate = new Date(now.getFullYear(), now.getMonth() - 6, 1); break;
-        case 'year': startDate = new Date(now.getFullYear() - 1, now.getMonth(), 1); break;
-        default: startDate = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-      }
-
-      const startDateStr = startDate.toISOString().split('T')[0];
-
-      const { data: transactions, error } = await supabase
-        .from('transactions')
-        .select('*, categories(name, icon, color)')
-        .eq('household_id', hid)
-        .gte('date', startDateStr)
-        .order('date', { ascending: true });
-
-      if (error) { console.error('Erro ao buscar transações:', error); return; }
-
-      if (!transactions || transactions.length === 0) {
-        setCategoryData([]);
-        setMonthlyData([]);
-        setInsights(['📭 Nenhum gasto registrado neste período']);
-        setTotalSpent(0);
-        setAvgPerDay(0);
-        setTotalInterestPaid(0);
-        setInterestTransactions([]);
-        return;
-      }
-
-      // Processa categorias
-      const categoryMap = new Map<string, CategoryData>();
-      let total = 0;
-
-      transactions.forEach((t) => {
-        total += t.amount;
-        const catName = t.categories?.name || 'Sem categoria';
-        const existing = categoryMap.get(catName);
-        if (existing) {
-          existing.value += t.amount;
-        } else {
-          categoryMap.set(catName, {
-            name: catName,
-            value: t.amount,
-            color: t.categories?.color || '#95a5a6',
-            icon: t.categories?.icon || '📁'
-          });
-        }
-      });
-
-      const catData = Array.from(categoryMap.values()).sort((a, b) => b.value - a.value);
-      setCategoryData(catData);
-      setTotalSpent(total);
-
-      // Processa dados mensais
-      const monthlyMap = new Map<string, number>();
-      transactions.forEach((t) => {
-        const month = t.date.slice(0, 7);
-        monthlyMap.set(month, (monthlyMap.get(month) || 0) + t.amount);
-      });
-
-      const monthlyArray = Array.from(monthlyMap.entries()).map(([month, amount]) => ({
-        month: new Date(month + '-01').toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }),
-        amount
-      }));
-      setMonthlyData(monthlyArray);
-
-      // Calcula juros pagos no período
-      const interestTxs = transactions.filter(t =>
-        t.total_with_interest != null &&
-        t.original_amount != null &&
-        t.total_with_interest > t.original_amount
-      );
-      const totalInterest = interestTxs.reduce((sum, t) =>
-        sum + (Number(t.total_with_interest) - Number(t.original_amount)), 0
-      );
-      setTotalInterestPaid(totalInterest);
-      setInterestTransactions(interestTxs);
-
-      // Insights
-      const days = Math.ceil((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-      const avgDay = total / days;
-      setAvgPerDay(avgDay);
-
-      if (catData.length > 0) {
-        setTopCategory(catData[0].name);
-        generateInsights(catData, total, avgDay, monthlyArray, totalInterest, interestTxs);
-      }
-    }
-
-  function generateInsights(
-    catData: CategoryData[],
-    total: number,
-    avgDay: number,
-    monthly: MonthlyData[],
-    totalInterest: number,
-    interestTxs: any[]
-  ) {
-    const insightsList: string[] = [];
-
-    if (catData.length > 0) {
-      const topCat = catData[0];
-      const percentage = ((topCat.value / total) * 100).toFixed(0);
-      insightsList.push(`${topCat.icon} Você gasta ${percentage}% do seu dinheiro em ${topCat.name}`);
-    }
-
-    insightsList.push(`💸 Sua média de gasto é R$ ${avgDay.toFixed(2)} por dia`);
-
-    if (monthly.length >= 2) {
-      const lastMonth = monthly[monthly.length - 1].amount;
-      const prevMonth = monthly[monthly.length - 2].amount;
-      const diff = lastMonth - prevMonth;
-      const diffPercent = ((diff / prevMonth) * 100).toFixed(0);
-      if (diff > 0) {
-        insightsList.push(`📈 Seus gastos aumentaram ${diffPercent}% no último mês`);
-      } else if (diff < 0) {
-        insightsList.push(`📉 Parabéns! Você economizou ${Math.abs(parseFloat(diffPercent))}% no último mês`);
-      } else {
-        insightsList.push(`➡️ Seus gastos se mantiveram estáveis no último mês`);
-      }
-    }
-
-    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-    const projection = avgDay * daysInMonth;
-    insightsList.push(`🔮 Projeção para o mês: R$ ${projection.toFixed(2)}`);
-
-    if (catData.length >= 3) {
-      const top3 = catData.slice(0, 3);
-      const top3Total = top3.reduce((sum, cat) => sum + cat.value, 0);
-      const top3Percent = ((top3Total / total) * 100).toFixed(0);
-      insightsList.push(`🎯 ${top3Percent}% dos gastos estão em apenas 3 categorias`);
-    }
-
-    // Insight de juros
-    if (totalInterest > 0) {
-      const interestPercOfTotal = ((totalInterest / total) * 100).toFixed(1);
-      insightsList.push(`📈 Você pagou R$ ${totalInterest.toFixed(2)} em juros neste período (${interestPercOfTotal}% do total gasto)`);
-
-      if (interestTxs.length > 0) {
-        const biggestInterest = interestTxs.reduce((max, t) =>
-          (Number(t.total_with_interest) - Number(t.original_amount)) > (Number(max.total_with_interest) - Number(max.original_amount)) ? t : max
-        );
-        const biggestInterestAmount = Number(biggestInterest.total_with_interest) - Number(biggestInterest.original_amount);
-        insightsList.push(`💳 A compra "${biggestInterest.description}" teve o maior custo de juros: R$ ${biggestInterestAmount.toFixed(2)} a mais`);
-      }
-
-      if (totalInterest > 100) {
-        insightsList.push(`💡 Dica: com R$ ${totalInterest.toFixed(2)} em juros você poderia ter comprado à vista e economizado esse valor`);
-      }
-    } else {
-      insightsList.push(`✅ Parabéns! Nenhum juro pago neste período — todas as compras parceladas foram sem juros`);
-    }
-
-    setInsights(insightsList);
-  }
-
+  // Render
   const RADIAN = Math.PI / 180;
-  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  const renderLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
     if (percent < 0.05) return null;
+    const r = innerRadius + (outerRadius - innerRadius) * 0.5;
     return (
-      <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontWeight="bold" fontSize="14">
+      <text x={cx + r * Math.cos(-midAngle * RADIAN)} y={cy + r * Math.sin(-midAngle * RADIAN)}
+        fill="white" textAnchor="middle" dominantBaseline="central" fontWeight="bold" fontSize={13}>
         {`${(percent * 100).toFixed(0)}%`}
       </text>
     );
   };
 
-  if (loading) {
-    return (
-      <main style={{ padding: 16, textAlign: 'center' }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>📊</div>
-        <h2>Carregando Analytics...</h2>
+  if (loading) return (
+    <>
+      <Header title="📊 Analytics" backHref="/dashboard" />
+      <main style={{ padding: 32, textAlign: 'center' }}>
+        <div style={{ fontSize: 48 }}>📊</div>
+        <p style={{ color: 'var(--text-muted)', marginTop: 12 }}>Carregando...</p>
       </main>
-    );
-  }
+    </>
+  );
 
-  if (!householdId) {
-    return (
-      <main style={{ padding: 16, textAlign: 'center' }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
-        <h2>Você não está em nenhum casal ainda</h2>
-        <Link href="/dashboard"><button style={{ padding: '12px 24px', marginTop: 16 }}>Voltar</button></Link>
+  if (!householdId) return (
+    <>
+      <Header title="📊 Analytics" backHref="/dashboard" />
+      <main style={{ padding: 32, textAlign: 'center' }}>
+        <p>Você não está em nenhum espaço financeiro.</p>
+        <Link href="/setup"><button style={{ marginTop: 16, padding: '12px 24px' }}>Configurar</button></Link>
       </main>
-    );
-  }
+    </>
+  );
 
   return (
     <>
-      <Header title="Analytics" backHref="/dashboard" />
-      <main style={{ padding: 16, maxWidth: 1200, margin: '0 auto' }}>
-        <div style={{ marginBottom: 24 }}>
-          <h1 style={{ marginBottom: 8 }}>📊 Analytics & Insights</h1>
-          <p style={{ color: '#666', fontSize: 14 }}>Análise detalhada dos seus gastos</p>
+      <Header title="📊 Analytics" backHref="/dashboard" />
+      <main style={{ padding: 16, maxWidth: 900, margin: '0 auto', paddingBottom: 80 }}>
+
+        {/* Seletor de período */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24, marginTop: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontWeight: 600, color: 'var(--text2)', fontSize: 14, marginRight: 4 }}>📅 Período:</span>
+          {[{ v: '3months', l: '3 meses' }, { v: '6months', l: '6 meses' }, { v: 'year', l: '1 ano' }].map((opt) => (
+            <button key={opt.v} onClick={() => setPeriod(opt.v)} style={{
+              padding: '6px 16px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 13,
+              fontWeight: period === opt.v ? 700 : 400,
+              backgroundColor: period === opt.v ? '#3498db' : 'var(--bg3)',
+              color: period === opt.v ? 'white' : 'var(--text2)',
+            }}>
+              {opt.l}
+            </button>
+          ))}
+          {dataLoading && <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 8 }}>Atualizando...</span>}
         </div>
 
-        <div style={{ marginBottom: 24 }}>
-          <label style={{ fontWeight: 'bold', marginRight: 12 }}>📅 Período:</label>
-          <select value={period} onChange={(e) => setPeriod(e.target.value)}
-            style={{ padding: 8, fontSize: 16, borderRadius: 8, border: '1px solid #ddd' }}>
-            <option value="3months">Últimos 3 meses</option>
-            <option value="6months">Últimos 6 meses</option>
-            <option value="year">Último ano</option>
-          </select>
-        </div>
-
-        {/* Cards de resumo — agora com juros */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 32 }}>
-          <div style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', padding: 20, borderRadius: 12, color: 'white', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-            <div style={{ fontSize: 14, marginBottom: 8, opacity: 0.9 }}>Total Gasto</div>
-            <div style={{ fontSize: 28, fontWeight: 'bold' }}>R$ {totalSpent.toFixed(2)}</div>
-          </div>
-          <div style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', padding: 20, borderRadius: 12, color: 'white', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-            <div style={{ fontSize: 14, marginBottom: 8, opacity: 0.9 }}>Média por Dia</div>
-            <div style={{ fontSize: 28, fontWeight: 'bold' }}>R$ {avgPerDay.toFixed(2)}</div>
-          </div>
-          <div style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', padding: 20, borderRadius: 12, color: 'white', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-            <div style={{ fontSize: 14, marginBottom: 8, opacity: 0.9 }}>Top Categoria</div>
-            <div style={{ fontSize: 24, fontWeight: 'bold' }}>{topCategory || 'N/A'}</div>
-          </div>
-          <div style={{
-            background: totalInterestPaid > 0
-              ? 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)'
-              : 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)',
-            padding: 20, borderRadius: 12, color: 'white', boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-          }}>
-            <div style={{ fontSize: 14, marginBottom: 8, opacity: 0.9 }}>Juros Pagos</div>
-            <div style={{ fontSize: 28, fontWeight: 'bold' }}>R$ {totalInterestPaid.toFixed(2)}</div>
-            <div style={{ fontSize: 12, opacity: 0.8 }}>
-              {totalInterestPaid > 0 ? `${interestTransactions.length} compra(s) com juros` : '✅ Sem juros'}
+        {/* KPI cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12, marginBottom: 24 }}>
+          {[
+            { label: 'Total gasto',   value: `R$ ${totalSpent.toFixed(2)}`,       bg: 'linear-gradient(135deg,#667eea,#764ba2)' },
+            { label: 'Média/dia',     value: `R$ ${avgPerDay.toFixed(2)}`,         bg: 'linear-gradient(135deg,#f093fb,#f5576c)' },
+            { label: 'Top categoria', value: topCategory || '—',                   bg: 'linear-gradient(135deg,#4facfe,#00f2fe)' },
+            { label: 'Juros pagos',   value: `R$ ${totalInterestPaid.toFixed(2)}`, bg: totalInterestPaid > 0 ? 'linear-gradient(135deg,#e74c3c,#c0392b)' : 'linear-gradient(135deg,#2ecc71,#27ae60)' },
+          ].map((c) => (
+            <div key={c.label} style={{ background: c.bg, padding: '16px 18px', borderRadius: 12, color: 'white' }}>
+              <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>{c.label}</div>
+              <div style={{ fontSize: 20, fontWeight: 700 }}>{c.value}</div>
             </div>
-          </div>
+          ))}
         </div>
 
-        {/* Detalhamento de juros — só aparece se houver */}
-        {totalInterestPaid > 0 && (
-          <div style={{ backgroundColor: '#fdecea', border: '2px solid #e74c3c', borderRadius: 12, padding: 20, marginBottom: 32 }}>
-            <h2 style={{ marginTop: 0, marginBottom: 16, color: '#c0392b' }}>📈 Detalhamento de Juros</h2>
-            <div style={{ display: 'grid', gap: 10 }}>
-              {interestTransactions.map((t, i) => {
-                const interest = Number(t.total_with_interest) - Number(t.original_amount);
-                const interestPct = ((interest / Number(t.original_amount)) * 100).toFixed(1);
-                return (
-                  <div key={i} style={{ backgroundColor: 'white', padding: 12, borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #f5b7b1' }}>
-                    <div>
-                      <div style={{ fontWeight: 'bold' }}>{t.description}</div>
-                      <div style={{ fontSize: 12, color: '#666', marginTop: 2 }}>
-                        {new Date(t.date + 'T12:00:00').toLocaleDateString('pt-BR')}
-                        {' · '}{t.installments_count}x de R$ {Number(t.installment_value).toFixed(2)}
-                      </div>
-                      <div style={{ fontSize: 12, color: '#888', marginTop: 1 }}>
-                        Original: R$ {Number(t.original_amount).toFixed(2)} → Total: R$ {Number(t.total_with_interest).toFixed(2)}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: 'right', minWidth: 80 }}>
-                      <div style={{ fontWeight: 'bold', color: '#e74c3c', fontSize: 16 }}>
-                        +R$ {interest.toFixed(2)}
-                      </div>
-                      <div style={{ fontSize: 12, color: '#e74c3c' }}>+{interestPct}%</div>
-                    </div>
-                  </div>
-                );
-              })}
+        {/* Insights */}
+        {insights.length > 0 && (
+          <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, padding: 18, marginBottom: 24 }}>
+            <div style={{ fontWeight: 700, marginBottom: 10, fontSize: 14 }}>💡 Insights</div>
+            <div style={{ display: 'grid', gap: 7 }}>
+              {insights.map((ins, i) => (
+                <div key={i} style={{ background: 'var(--surface)', border: '1px solid var(--border2)', borderRadius: 8, padding: '9px 13px', fontSize: 13, color: 'var(--text)' }}>
+                  {ins}
+                </div>
+              ))}
             </div>
           </div>
         )}
 
-        {/* Insights */}
-        <div style={{ backgroundColor: '#fff3cd', border: '2px solid #ffc107', borderRadius: 12, padding: 20, marginBottom: 32 }}>
-          <h2 style={{ marginTop: 0, marginBottom: 16 }}>💡 Insights Inteligentes</h2>
-          <div style={{ display: 'grid', gap: 12 }}>
-            {insights.map((insight, i) => (
-              <div key={i} style={{ backgroundColor: 'white', padding: 12, borderRadius: 8, fontSize: 15, border: '1px solid #f39c12' }}>
-                {insight}
-              </div>
-            ))}
+        {/* Sem dados */}
+        {categoryData.length === 0 && !dataLoading && (
+          <div style={{ textAlign: 'center', padding: '48px 16px', color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
+            <p>Nenhum gasto encontrado neste período.</p>
+            <Link href="/transactions/new">
+              <button style={{ marginTop: 12, padding: '10px 24px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+                + Lançar gasto
+              </button>
+            </Link>
           </div>
-        </div>
+        )}
 
         {categoryData.length > 0 && (
           <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 24, marginBottom: 32 }}>
-              <div style={{ backgroundColor: 'white', padding: 24, borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                <h3 style={{ marginTop: 0, marginBottom: 16 }}>🥧 Gastos por Categoria</h3>
-                <ResponsiveContainer width="100%" height={300}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, marginBottom: 16 }}>
+
+              {/* Pizza */}
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
+                <div style={{ fontWeight: 700, marginBottom: 14, fontSize: 14 }}>🥧 Por categoria</div>
+                <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
-                    <Pie data={categoryData} cx="50%" cy="50%" labelLine={false} label={renderCustomizedLabel} outerRadius={100} fill="#8884d8" dataKey="value">
-                      {categoryData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
+                    <Pie data={categoryData} cx="50%" cy="50%" labelLine={false} label={renderLabel} outerRadius={90} dataKey="value">
+                      {categoryData.map((e, i) => <Cell key={i} fill={e.color} />)}
                     </Pie>
-                    <Tooltip formatter={(value: number | undefined) => value != null ? `R$ ${value.toFixed(2)}` : 'R$ 0.00'} />
+                    <Tooltip formatter={(v: any) => `R$ ${Number(v).toFixed(2)}`} />
                   </PieChart>
                 </ResponsiveContainer>
-                <div style={{ marginTop: 16 }}>
+                <div style={{ marginTop: 10, display: 'grid', gap: 5 }}>
                   {categoryData.map((cat, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, fontSize: 14 }}>
-                      <div style={{ width: 16, height: 16, backgroundColor: cat.color, borderRadius: 4 }} />
-                      <span>{cat.icon} {cat.name}</span>
-                      <span style={{ marginLeft: 'auto', fontWeight: 'bold' }}>R$ {cat.value.toFixed(2)}</span>
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                      <div style={{ width: 11, height: 11, borderRadius: 3, backgroundColor: cat.color, flexShrink: 0 }} />
+                      <span style={{ color: 'var(--text2)' }}>{cat.icon} {cat.name}</span>
+                      <span style={{ marginLeft: 'auto', fontWeight: 600, color: 'var(--text)' }}>R$ {cat.value.toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {monthlyData.length > 0 && (
-                <div style={{ backgroundColor: 'white', padding: 24, borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                  <h3 style={{ marginTop: 0, marginBottom: 16 }}>📈 Evolução Mensal</h3>
-                  <ResponsiveContainer width="100%" height={300}>
+              {/* Evolução mensal */}
+              {monthlyData.length > 1 && (
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
+                  <div style={{ fontWeight: 700, marginBottom: 14, fontSize: 14 }}>📈 Evolução mensal</div>
+                  <ResponsiveContainer width="100%" height={220}>
                     <LineChart data={monthlyData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <Tooltip formatter={(value: number | undefined) => value != null ? `R$ ${value.toFixed(2)}` : 'R$ 0.00'} />
-                      <Line type="monotone" dataKey="amount" stroke="#8884d8" strokeWidth={3} dot={{ r: 6, fill: '#8884d8' }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                      <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--text3)' }} />
+                      <YAxis tick={{ fontSize: 11, fill: 'var(--text3)' }} />
+                      <Tooltip formatter={(v: any) => `R$ ${Number(v).toFixed(2)}`} />
+                      <Line type="monotone" dataKey="amount" stroke="#3498db" strokeWidth={2.5} dot={{ r: 4, fill: '#3498db' }} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
               )}
             </div>
 
-            <div style={{ backgroundColor: 'white', padding: 24, borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', marginBottom: 24 }}>
-              <h3 style={{ marginTop: 0, marginBottom: 16 }}>🏆 Ranking de Categorias</h3>
-              <ResponsiveContainer width="100%" height={300}>
+            {/* Ranking */}
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: 20, marginBottom: 16 }}>
+              <div style={{ fontWeight: 700, marginBottom: 14, fontSize: 14 }}>🏆 Ranking de categorias</div>
+              <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={categoryData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip formatter={(value: number | undefined) => value != null ? `R$ ${value.toFixed(2)}` : 'R$ 0.00'} />
-                  <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                    {categoryData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--text3)' }} />
+                  <YAxis tick={{ fontSize: 11, fill: 'var(--text3)' }} />
+                  <Tooltip formatter={(v: any) => `R$ ${Number(v).toFixed(2)}`} />
+                  <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                    {categoryData.map((e, i) => <Cell key={i} fill={e.color} />)}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
+
+            {/* Juros */}
+            {totalInterestPaid > 0 && (
+              <div style={{ background: '#fdecea', border: '1px solid #f5b7b1', borderRadius: 12, padding: 20 }}>
+                <div style={{ fontWeight: 700, color: '#c0392b', marginBottom: 12, fontSize: 14 }}>📈 Compras com juros</div>
+                <div style={{ display: 'grid', gap: 8 }}>
+                  {interestTransactions.map((t, i) => {
+                    const interest = Number(t.total_with_interest) - Number(t.original_amount);
+                    return (
+                      <div key={i} style={{ background: 'white', borderRadius: 8, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: 14 }}>{t.description || '—'}</div>
+                          <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>
+                            {new Date(t.date + 'T12:00:00').toLocaleDateString('pt-BR')}
+                            {t.installments_count > 1 && ` · ${t.installments_count}x R$ ${Number(t.installment_value).toFixed(2)}`}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontWeight: 700, color: '#e74c3c' }}>+R$ {interest.toFixed(2)}</div>
+                          <div style={{ fontSize: 11, color: '#e74c3c' }}>+{((interest / Number(t.original_amount)) * 100).toFixed(1)}%</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </>
         )}
-
-        <div style={{ textAlign: 'center' }}>
-          <Link href="/dashboard">
-            <button style={{ padding: '12px 24px', fontSize: 16 }}>⬅️ Voltar ao Dashboard</button>
-          </Link>
-        </div>
       </main>
     </>
   );
