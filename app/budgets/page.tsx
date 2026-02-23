@@ -75,11 +75,11 @@ export default function BudgetsPage() {
       setHouseholdId(member.household_id);
     }
 
-    if (members) {
+    if (member) {
       const { data: cats } = await supabase
         .from('categories')
         .select('*')
-        .eq('household_id', members.household_id)
+        .eq('household_id', member.household_id)
         .order('name');
       setCategories(cats || []);
     }
