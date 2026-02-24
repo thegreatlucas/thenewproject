@@ -3,55 +3,156 @@
 @tailwind utilities;
 
 /* ─────────────────────────────────────────
-   CSS Custom Properties — Light & Dark Mode
+   IMPORTS DE FONTES
+   ───────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+/* ─────────────────────────────────────────
+   TEMA GENZ (DEFAULT) — Soft UI / Pastel
    ───────────────────────────────────────── */
 :root {
   color-scheme: light;
 
-  --bg:       #ffffff;
-  --bg2:      #f8f9fa;
-  --bg3:      #f0f0f0;
-  --surface:  #ffffff;
-  --surface2: #f5f5f5;
-  --border:   #e5e7eb;
-  --border2:  #eeeeee;
-  --text:     #1a1a1a;
-  --text2:    #444444;
-  --text3:    #666666;
-  --text-muted: #999999;
-  --shadow:   0 2px 8px rgba(0,0,0,0.08);
+  /* Superfícies */
+  --bg:        #f0f0f7;
+  --bg2:       #e8e8f0;
+  --bg3:       #dddde8;
+  --surface:   #ffffff;
+  --surface2:  #f5f5fc;
 
-  /* Brand colors — inalteráveis */
-  --green:  #2ecc71;
-  --green2: #27ae60;
-  --red:    #e74c3c;
-  --blue:   #3498db;
-  --orange: #e67e22;
-  --purple: #9b59b6;
+  /* Bordas */
+  --border:    #e2e2ee;
+  --border2:   #eaeaf4;
+
+  /* Texto */
+  --text:      #1a1a2e;
+  --text2:     #3d3d5c;
+  --text3:     #7070a0;
+  --text-muted:#a0a0c0;
+
+  /* Sombras suaves GenZ */
+  --shadow:    0 4px 24px rgba(100,100,200,0.10);
+  --shadow-sm: 0 2px 8px rgba(100,100,200,0.07);
+  --shadow-lg: 0 8px 40px rgba(100,100,200,0.15);
+
+  /* Brand */
+  --green:     #00c896;
+  --green2:    #00a87e;
+  --red:       #ff5c7c;
+  --blue:      #6c63ff;
+  --orange:    #ff9a3c;
+  --purple:    #b663ff;
+  --pink:      #ff63c8;
+  --yellow:    #ffe03c;
+
+  /* Raio de borda GenZ */
+  --radius:    20px;
+  --radius-sm: 12px;
+  --radius-lg: 28px;
+  --radius-xl: 36px;
+
+  /* Tipografia */
+  --font-display: 'Plus Jakarta Sans', sans-serif;
+  --font-body:    'Space Grotesk', sans-serif;
+  --font-mono:    'Space Mono', monospace;
 }
 
+/* ─────────────────────────────────────────
+   DARK MODE (GenZ)
+   ───────────────────────────────────────── */
 [data-theme='dark'] {
   color-scheme: dark;
 
-  --bg:       #0f0f0f;
-  --bg2:      #141414;
-  --bg3:      #1a1a1a;
-  --surface:  #161616;
-  --surface2: #1e1e1e;
-  --border:   #2a2a2a;
-  --border2:  #333333;
-  --text:     #f0f0f0;
-  --text2:    #cccccc;
-  --text3:    #999999;
-  --text-muted: #555555;
-  --shadow:   0 2px 8px rgba(0,0,0,0.5);
+  --bg:        #0d0d1a;
+  --bg2:       #12121f;
+  --bg3:       #18182a;
+  --surface:   #14142a;
+  --surface2:  #1a1a30;
+
+  --border:    #2a2a45;
+  --border2:   #222238;
+
+  --text:      #f0f0ff;
+  --text2:     #c0c0e0;
+  --text3:     #8080b0;
+  --text-muted:#404070;
+
+  --shadow:    0 4px 24px rgba(0,0,0,0.5);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.6);
 }
 
-/* ─── Base ─────────────────────────────── */
+/* ─────────────────────────────────────────
+   TEMA BRUTALISTA
+   Ativado com: <html class="brutalist">
+   ───────────────────────────────────────── */
+.brutalist {
+  --bg:        #f5f0e8;
+  --bg2:       #ede8d8;
+  --bg3:       #e0d8c0;
+  --surface:   #fff8e8;
+  --surface2:  #f5f0e0;
+
+  --border:    #1a1a1a;
+  --border2:   #333333;
+
+  --text:      #0a0a0a;
+  --text2:     #1a1a1a;
+  --text3:     #444444;
+  --text-muted:#666666;
+
+  --shadow:    4px 4px 0px #1a1a1a;
+  --shadow-sm: 3px 3px 0px #1a1a1a;
+  --shadow-lg: 6px 6px 0px #1a1a1a;
+
+  --green:     #00cc44;
+  --green2:    #00aa33;
+  --red:       #ff2244;
+  --blue:      #0044ff;
+  --orange:    #ff8800;
+  --purple:    #8800ff;
+
+  --radius:    4px;
+  --radius-sm: 2px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+
+  --font-display: 'Space Mono', monospace;
+  --font-body:    'Space Mono', monospace;
+}
+
+.brutalist[data-theme='dark'] {
+  --bg:        #0a0a0a;
+  --bg2:       #111111;
+  --bg3:       #1a1a1a;
+  --surface:   #0f0f0f;
+  --surface2:  #161616;
+
+  --border:    #f5f0e8;
+  --border2:   #cccccc;
+
+  --text:      #f5f0e8;
+  --text2:     #dddddd;
+  --text3:     #aaaaaa;
+  --text-muted:#666666;
+
+  --shadow:    4px 4px 0px #f5f0e8;
+  --shadow-sm: 3px 3px 0px #f5f0e8;
+  --shadow-lg: 6px 6px 0px #f5f0e8;
+}
+
+/* ─────────────────────────────────────────
+   BASE
+   ───────────────────────────────────────── */
 html, body {
   background-color: var(--bg);
   color: var(--text);
+  font-family: var(--font-body);
   transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
 }
 
 main {
@@ -59,35 +160,89 @@ main {
   min-height: 100vh;
 }
 
-/* ─── Inputs ────────────────────────────── */
-input,
-select,
-textarea {
+/* ─────────────────────────────────────────
+   INPUTS
+   ───────────────────────────────────────── */
+input, select, textarea {
   background-color: var(--surface2) !important;
   color: var(--text) !important;
   border-color: var(--border) !important;
   -webkit-text-fill-color: var(--text) !important;
+  font-family: var(--font-body);
+  border-radius: var(--radius-sm) !important;
 }
 
-input::placeholder,
-select::placeholder,
-textarea::placeholder {
+input::placeholder, select::placeholder, textarea::placeholder {
   color: var(--text-muted) !important;
   -webkit-text-fill-color: var(--text-muted) !important;
 }
 
-/* Autofill no Chrome — dark mode */
 [data-theme='dark'] input:-webkit-autofill,
-[data-theme='dark'] input:-webkit-autofill:hover,
-[data-theme='dark'] input:-webkit-autofill:focus {
-  -webkit-text-fill-color: #f0f0f0 !important;
-  -webkit-box-shadow: 0 0 0px 1000px #1e1e1e inset !important;
+[data-theme='dark'] select:-webkit-autofill,
+[data-theme='dark'] textarea:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px var(--surface2) inset !important;
+  -webkit-text-fill-color: var(--text) !important;
 }
 
-/* Autofill no Chrome — light mode */
-input:-webkit-autofill,
-input:-webkit-autofill:hover,
-input:-webkit-autofill:focus {
-  -webkit-text-fill-color: #1a1a1a !important;
-  -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
+/* ─────────────────────────────────────────
+   SCROLLBAR CUSTOMIZADA
+   ───────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ─────────────────────────────────────────
+   UTILITÁRIOS GLOBAIS
+   ───────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow);
+}
+
+.brutalist .card {
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.brutalist .card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Animação de entrada suave */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-in {
+  animation: fadeSlideUp 0.3s ease forwards;
+}
+
+/* Stagger para listas */
+.stagger > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger > *:nth-child(2) { animation-delay: 0.10s; }
+.stagger > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger > *:nth-child(4) { animation-delay: 0.20s; }
+.stagger > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger > *:nth-child(6) { animation-delay: 0.30s; }
+
+/* Pulse skeleton */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+.skeleton {
+  background: var(--bg3);
+  border-radius: var(--radius-sm);
+  animation: pulse 1.5s ease-in-out infinite;
 }

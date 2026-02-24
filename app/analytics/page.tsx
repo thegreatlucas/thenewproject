@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { formatCurrency } from '@/lib/format';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/app/components/Header';
-import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar } from 'recharts';
 
 interface CategoryData {
   name: string;
@@ -166,7 +167,7 @@ export default function AnalyticsPage() {
       insightsList.push(`${topCat.icon} Você gasta ${percentage}% do seu dinheiro em ${topCat.name}`);
     }
 
-    insightsList.push(`💸 Sua média de gasto é R$ ${avgDay.toFixed(2)} por dia`);
+    insightsList.push(`💸 Sua média de gasto é ${formatCurrency(avgDay)} por dia`);
 
     if (monthly.length >= 2) {
       const lastMonth = monthly[monthly.length - 1].amount;
@@ -184,7 +185,7 @@ export default function AnalyticsPage() {
 
     const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
     const projection = avgDay * daysInMonth;
-    insightsList.push(`🔮 Projeção para o mês: R$ ${projection.toFixed(2)}`);
+    insightsList.push(`🔮 Projeção para o mês: ${formatCurrency(projection)}`);
 
     if (catData.length >= 3) {
       const top3 = catData.slice(0, 3);
@@ -196,18 +197,18 @@ export default function AnalyticsPage() {
     // Insight de juros
     if (totalInterest > 0) {
       const interestPercOfTotal = ((totalInterest / total) * 100).toFixed(1);
-      insightsList.push(`📈 Você pagou R$ ${totalInterest.toFixed(2)} em juros neste período (${interestPercOfTotal}% do total gasto)`);
+      insightsList.push(`📈 Você pagou ${formatCurrency(totalInterest)} em juros neste período (${interestPercOfTotal}% do total gasto)`);
 
       if (interestTxs.length > 0) {
         const biggestInterest = interestTxs.reduce((max, t) =>
           (Number(t.total_with_interest) - Number(t.original_amount)) > (Number(max.total_with_interest) - Number(max.original_amount)) ? t : max
         );
         const biggestInterestAmount = Number(biggestInterest.total_with_interest) - Number(biggestInterest.original_amount);
-        insightsList.push(`💳 A compra "${biggestInterest.description}" teve o maior custo de juros: R$ ${biggestInterestAmount.toFixed(2)} a mais`);
+        insightsList.push(`💳 A compra "${biggestInterest.description}" teve o maior custo de juros: ${formatCurrency(biggestInterestAmount)} a mais`);
       }
 
       if (totalInterest > 100) {
-        insightsList.push(`💡 Dica: com R$ ${totalInterest.toFixed(2)} em juros você poderia ter comprado à vista e economizado esse valor`);
+        insightsList.push(`💡 Dica: com ${formatCurrency(totalInterest)} em juros você poderia ter comprado à vista e economizado esse valor`);
       }
     } else {
       insightsList.push(`✅ Parabéns! Nenhum juro pago neste período — todas as compras parceladas foram sem juros`);
@@ -254,13 +255,13 @@ export default function AnalyticsPage() {
       <main style={{ padding: 16, maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ marginBottom: 24 }}>
           <h1 style={{ marginBottom: 8 }}>📊 Analytics & Insights</h1>
-          <p style={{ color: '#666', fontSize: 14 }}>Análise detalhada dos seus gastos</p>
+          <p style={{ color: 'var(--text3)', fontSize: 14 }}>Análise detalhada dos seus gastos</p>
         </div>
 
         <div style={{ marginBottom: 24 }}>
           <label style={{ fontWeight: 'bold', marginRight: 12 }}>📅 Período:</label>
           <select value={period} onChange={(e) => setPeriod(e.target.value)}
-            style={{ padding: 8, fontSize: 16, borderRadius: 8, border: '1px solid #ddd' }}>
+            style={{ padding: 8, fontSize: 16, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
             <option value="3months">Últimos 3 meses</option>
             <option value="6months">Últimos 6 meses</option>
             <option value="year">Último ano</option>
@@ -269,15 +270,15 @@ export default function AnalyticsPage() {
 
         {/* Cards de resumo — agora com juros */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 32 }}>
-          <div style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', padding: 20, borderRadius: 12, color: 'white', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+          <div style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', padding: 20, borderRadius: 'var(--radius)', color: 'white', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
             <div style={{ fontSize: 14, marginBottom: 8, opacity: 0.9 }}>Total Gasto</div>
-            <div style={{ fontSize: 28, fontWeight: 'bold' }}>R$ {totalSpent.toFixed(2)}</div>
+            <div style={{ fontSize: 28, fontWeight: 'bold' }}>{formatCurrency(totalSpent)}</div>
           </div>
-          <div style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', padding: 20, borderRadius: 12, color: 'white', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+          <div style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', padding: 20, borderRadius: 'var(--radius)', color: 'white', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
             <div style={{ fontSize: 14, marginBottom: 8, opacity: 0.9 }}>Média por Dia</div>
-            <div style={{ fontSize: 28, fontWeight: 'bold' }}>R$ {avgPerDay.toFixed(2)}</div>
+            <div style={{ fontSize: 28, fontWeight: 'bold' }}>{formatCurrency(avgPerDay)}</div>
           </div>
-          <div style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', padding: 20, borderRadius: 12, color: 'white', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+          <div style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', padding: 20, borderRadius: 'var(--radius)', color: 'white', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
             <div style={{ fontSize: 14, marginBottom: 8, opacity: 0.9 }}>Top Categoria</div>
             <div style={{ fontSize: 24, fontWeight: 'bold' }}>{topCategory || 'N/A'}</div>
           </div>
@@ -285,10 +286,10 @@ export default function AnalyticsPage() {
             background: totalInterestPaid > 0
               ? 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)'
               : 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)',
-            padding: 20, borderRadius: 12, color: 'white', boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+            padding: 20, borderRadius: 'var(--radius)', color: 'white', boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
           }}>
             <div style={{ fontSize: 14, marginBottom: 8, opacity: 0.9 }}>Juros Pagos</div>
-            <div style={{ fontSize: 28, fontWeight: 'bold' }}>R$ {totalInterestPaid.toFixed(2)}</div>
+            <div style={{ fontSize: 28, fontWeight: 'bold' }}>{formatCurrency(totalInterestPaid)}</div>
             <div style={{ fontSize: 12, opacity: 0.8 }}>
               {totalInterestPaid > 0 ? `${interestTransactions.length} compra(s) com juros` : '✅ Sem juros'}
             </div>
@@ -297,29 +298,29 @@ export default function AnalyticsPage() {
 
         {/* Detalhamento de juros — só aparece se houver */}
         {totalInterestPaid > 0 && (
-          <div style={{ backgroundColor: '#fdecea', border: '2px solid #e74c3c', borderRadius: 12, padding: 20, marginBottom: 32 }}>
+          <div style={{ backgroundColor: '#fdecea', border: '2px solid #e74c3c', borderRadius: 'var(--radius)', padding: 20, marginBottom: 32 }}>
             <h2 style={{ marginTop: 0, marginBottom: 16, color: '#c0392b' }}>📈 Detalhamento de Juros</h2>
             <div style={{ display: 'grid', gap: 10 }}>
               {interestTransactions.map((t, i) => {
                 const interest = Number(t.total_with_interest) - Number(t.original_amount);
                 const interestPct = ((interest / Number(t.original_amount)) * 100).toFixed(1);
                 return (
-                  <div key={i} style={{ backgroundColor: 'white', padding: 12, borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #f5b7b1' }}>
+                  <div key={i} style={{ backgroundColor: 'var(--surface)', padding: 12, borderRadius: 'var(--radius-sm)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #f5b7b1' }}>
                     <div>
                       <div style={{ fontWeight: 'bold' }}>{t.description}</div>
-                      <div style={{ fontSize: 12, color: '#666', marginTop: 2 }}>
+                      <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
                         {new Date(t.date + 'T12:00:00').toLocaleDateString('pt-BR')}
                         {' · '}{t.installments_count}x de R$ {Number(t.installment_value).toFixed(2)}
                       </div>
-                      <div style={{ fontSize: 12, color: '#888', marginTop: 1 }}>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>
                         Original: R$ {Number(t.original_amount).toFixed(2)} → Total: R$ {Number(t.total_with_interest).toFixed(2)}
                       </div>
                     </div>
                     <div style={{ textAlign: 'right', minWidth: 80 }}>
-                      <div style={{ fontWeight: 'bold', color: '#e74c3c', fontSize: 16 }}>
-                        +R$ {interest.toFixed(2)}
+                      <div style={{ fontWeight: 'bold', color: 'var(--red)', fontSize: 16 }}>
+                        +{formatCurrency(interest)}
                       </div>
-                      <div style={{ fontSize: 12, color: '#e74c3c' }}>+{interestPct}%</div>
+                      <div style={{ fontSize: 12, color: 'var(--red)' }}>+{interestPct}%</div>
                     </div>
                   </div>
                 );
@@ -329,11 +330,11 @@ export default function AnalyticsPage() {
         )}
 
         {/* Insights */}
-        <div style={{ backgroundColor: '#fff3cd', border: '2px solid #ffc107', borderRadius: 12, padding: 20, marginBottom: 32 }}>
+        <div style={{ backgroundColor: '#fff3cd', border: '2px solid #ffc107', borderRadius: 'var(--radius)', padding: 20, marginBottom: 32 }}>
           <h2 style={{ marginTop: 0, marginBottom: 16 }}>💡 Insights Inteligentes</h2>
           <div style={{ display: 'grid', gap: 12 }}>
             {insights.map((insight, i) => (
-              <div key={i} style={{ backgroundColor: 'white', padding: 12, borderRadius: 8, fontSize: 15, border: '1px solid #f39c12' }}>
+              <div key={i} style={{ backgroundColor: 'var(--surface)', padding: 12, borderRadius: 'var(--radius-sm)', fontSize: 15, border: '1px solid #f39c12' }}>
                 {insight}
               </div>
             ))}
@@ -343,7 +344,7 @@ export default function AnalyticsPage() {
         {categoryData.length > 0 && (
           <>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 24, marginBottom: 32 }}>
-              <div style={{ backgroundColor: 'white', padding: 24, borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+              <div style={{ backgroundColor: 'var(--surface)', padding: 24, borderRadius: 'var(--radius)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
                 <h3 style={{ marginTop: 0, marginBottom: 16 }}>🥧 Gastos por Categoria</h3>
                 <ResponsiveContainer width="100%" height={300}>
                   <PieChart>
@@ -352,7 +353,6 @@ export default function AnalyticsPage() {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: number | undefined) => value != null ? `R$ ${value.toFixed(2)}` : 'R$ 0.00'} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div style={{ marginTop: 16 }}>
@@ -360,21 +360,20 @@ export default function AnalyticsPage() {
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, fontSize: 14 }}>
                       <div style={{ width: 16, height: 16, backgroundColor: cat.color, borderRadius: 4 }} />
                       <span>{cat.icon} {cat.name}</span>
-                      <span style={{ marginLeft: 'auto', fontWeight: 'bold' }}>R$ {cat.value.toFixed(2)}</span>
+                      <span style={{ marginLeft: 'auto', fontWeight: 'bold' }}>{formatCurrency(cat.value)}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
               {monthlyData.length > 0 && (
-                <div style={{ backgroundColor: 'white', padding: 24, borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                <div style={{ backgroundColor: 'var(--surface)', padding: 24, borderRadius: 'var(--radius)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
                   <h3 style={{ marginTop: 0, marginBottom: 16 }}>📈 Evolução Mensal</h3>
                   <ResponsiveContainer width="100%" height={300}>
                     <LineChart data={monthlyData}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="month" />
                       <YAxis />
-                      <Tooltip formatter={(value: number | undefined) => value != null ? `R$ ${value.toFixed(2)}` : 'R$ 0.00'} />
                       <Line type="monotone" dataKey="amount" stroke="#8884d8" strokeWidth={3} dot={{ r: 6, fill: '#8884d8' }} />
                     </LineChart>
                   </ResponsiveContainer>
@@ -382,14 +381,13 @@ export default function AnalyticsPage() {
               )}
             </div>
 
-            <div style={{ backgroundColor: 'white', padding: 24, borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', marginBottom: 24 }}>
+            <div style={{ backgroundColor: 'var(--surface)', padding: 24, borderRadius: 'var(--radius)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', marginBottom: 24 }}>
               <h3 style={{ marginTop: 0, marginBottom: 16 }}>🏆 Ranking de Categorias</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={categoryData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
-                  <Tooltip formatter={(value: number | undefined) => value != null ? `R$ ${value.toFixed(2)}` : 'R$ 0.00'} />
                   <Bar dataKey="value" radius={[8, 8, 0, 0]}>
                     {categoryData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { formatCurrency } from '@/lib/format';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -155,7 +156,7 @@ export default function FinancingsPage() {
   }
 
   async function handlePayIntermediary(intermediary: any, financingId: string) {
-    if (!confirm(`Marcar intermediária de R$ ${Number(intermediary.amount).toFixed(2)} como paga?`)) return;
+    if (!confirm(`Marcar intermediária de {ormatCurrency(Number(intermediary.amount))} como paga?`)) return;
 
     const today = new Date().toISOString().split('T')[0];
     const { error } = await supabase
@@ -274,7 +275,7 @@ export default function FinancingsPage() {
     return { pending: pending.length, total: intermediaries.length, totalAmount: total, paidAmount: paid };
   }
 
-  if (loading) return <main style={{ padding: 16 }}>Carregando...</main>;
+  if (loading) return <main style={{ padding: 16, color: 'var(--text-muted)' }}>Carregando...</main>;
 
   return (
     <>
@@ -284,14 +285,14 @@ export default function FinancingsPage() {
         <h1>🏦 Financiamentos</h1>
         <button
           onClick={() => { resetForm(); setShowForm(!showForm); }}
-          style={{ padding: '8px 16px', fontSize: 16, backgroundColor: showForm ? '#e74c3c' : '#2ecc71', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer' }}
+          style={{ padding: '8px 16px', fontSize: 16, backgroundColor: showForm ? '#e74c3c' : '#2ecc71', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}
         >
           {showForm ? '✖️ Cancelar' : '➕ Novo financiamento'}
         </button>
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} style={{ backgroundColor: '#f5f5f5', padding: 20, borderRadius: 8, marginBottom: 24 }}>
+        <form onSubmit={handleSubmit} style={{ backgroundColor: 'var(--bg2)', padding: 20, borderRadius: 'var(--radius-sm)', marginBottom: 24 }}>
           <h3 style={{ marginTop: 0 }}>{editingId ? 'Editar Financiamento' : 'Novo Financiamento'}</h3>
 
           <div style={{ marginBottom: 16 }}>
@@ -299,7 +300,7 @@ export default function FinancingsPage() {
             <input type="text" value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Ex: Apartamento Centro, Carro Onix..."
-              style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 4, border: '1px solid #ccc' }} required />
+              style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} required />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
@@ -308,14 +309,14 @@ export default function FinancingsPage() {
               <input type="number" value={formData.total_amount}
                 onChange={(e) => setFormData({ ...formData, total_amount: e.target.value })}
                 placeholder="0.00" step="0.01" min="0"
-                style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 4, border: '1px solid #ccc' }} required />
+                style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} required />
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Valor da parcela:</label>
               <input type="number" value={formData.installment_amount}
                 onChange={(e) => setFormData({ ...formData, installment_amount: e.target.value })}
                 placeholder="0.00" step="0.01" min="0"
-                style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 4, border: '1px solid #ccc' }} required />
+                style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} required />
             </div>
           </div>
 
@@ -325,21 +326,21 @@ export default function FinancingsPage() {
               <input type="number" value={formData.total_installments}
                 onChange={(e) => setFormData({ ...formData, total_installments: e.target.value })}
                 placeholder="Ex: 48" min="1"
-                style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 4, border: '1px solid #ccc' }} required />
+                style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} required />
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Já pagas:</label>
               <input type="number" value={formData.paid_installments}
                 onChange={(e) => setFormData({ ...formData, paid_installments: e.target.value })}
                 placeholder="0" min="0"
-                style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 4, border: '1px solid #ccc' }} />
+                style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} />
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Dia de vencimento:</label>
               <input type="number" value={formData.due_day}
                 onChange={(e) => setFormData({ ...formData, due_day: e.target.value })}
                 placeholder="Ex: 15" min="1" max="31"
-                style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 4, border: '1px solid #ccc' }} required />
+                style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} required />
             </div>
           </div>
 
@@ -348,13 +349,13 @@ export default function FinancingsPage() {
               <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Data de início:</label>
               <input type="date" value={formData.start_date}
                 onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 4, border: '1px solid #ccc' }} required />
+                style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} required />
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Conta de débito:</label>
               <select value={formData.account_id}
                 onChange={(e) => setFormData({ ...formData, account_id: e.target.value })}
-                style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 4, border: '1px solid #ccc' }}>
+                style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
                 <option value="">Selecione uma conta...</option>
                 {accounts.map((acc) => (
                   <option key={acc.id} value={acc.id}>{acc.name}</option>
@@ -364,17 +365,17 @@ export default function FinancingsPage() {
           </div>
 
           {formData.total_amount && formData.installment_amount && formData.total_installments && (
-            <div style={{ backgroundColor: '#e3f2fd', padding: 12, borderRadius: 8, marginBottom: 16, fontSize: 14 }}>
+            <div style={{ backgroundColor: 'rgba(108,99,255,0.08)', padding: 12, borderRadius: 'var(--radius-sm)', marginBottom: 16, fontSize: 14 }}>
               <strong>📊 Resumo:</strong> Saldo devedor: <strong>R$ {((parseInt(formData.total_installments) - parseInt(formData.paid_installments || '0')) * parseFloat(formData.installment_amount || '0')).toFixed(2)}</strong>
               {' · '} Parcelas restantes: <strong>{parseInt(formData.total_installments) - parseInt(formData.paid_installments || '0')}</strong>
             </div>
           )}
 
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="submit" style={{ padding: '10px 20px', fontSize: 16, backgroundColor: '#2ecc71', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+            <button type="submit" style={{ padding: '10px 20px', fontSize: 16, backgroundColor: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>
               {editingId ? '💾 Salvar' : '➕ Criar'}
             </button>
-            <button type="button" onClick={resetForm} style={{ padding: '10px 20px', fontSize: 16, backgroundColor: '#95a5a6', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+            <button type="button" onClick={resetForm} style={{ padding: '10px 20px', fontSize: 16, backgroundColor: 'var(--text-muted)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>
               Cancelar
             </button>
           </div>
@@ -382,7 +383,7 @@ export default function FinancingsPage() {
       )}
 
       {financings.length === 0 ? (
-        <p style={{ textAlign: 'center', color: '#666', padding: 32 }}>Nenhum financiamento cadastrado ainda.</p>
+        <p style={{ textAlign: 'center', color: 'var(--text3)', padding: 32 }}>Nenhum financiamento cadastrado ainda.</p>
       ) : (
         financings.map((f) => {
           const progress = getProgress(f.paid_installments, f.total_installments);
@@ -393,21 +394,21 @@ export default function FinancingsPage() {
           const interStatus = getIntermediaryStatus(inters);
 
           return (
-            <div key={f.id} style={{ border: '1px solid #ddd', marginBottom: 16, borderRadius: 12, backgroundColor: 'white', overflow: 'hidden' }}>
+            <div key={f.id} style={{ border: '1px solid var(--border)', marginBottom: 16, borderRadius: 'var(--radius)', backgroundColor: 'var(--surface)', overflow: 'hidden' }}>
               <div style={{ padding: 20 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                   <div>
                     <div style={{ fontWeight: 'bold', fontSize: 20 }}>{f.name}</div>
-                    <div style={{ fontSize: 13, color: '#666', marginTop: 2 }}>
+                    <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 2 }}>
                       {f.accounts?.name && `Débito em: ${f.accounts.name} · `}
                       Vence todo dia <strong>{f.due_day}</strong>
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     {isFinished ? (
-                      <span style={{ backgroundColor: '#2ecc71', color: 'white', padding: '4px 10px', borderRadius: 20, fontSize: 13, fontWeight: 'bold' }}>✅ Quitado</span>
+                      <span style={{ backgroundColor: 'var(--green)', color: 'white', padding: '4px 10px', borderRadius: 20, fontSize: 13, fontWeight: 'bold' }}>✅ Quitado</span>
                     ) : (
-                      <span style={{ backgroundColor: '#e74c3c', color: 'white', padding: '4px 10px', borderRadius: 20, fontSize: 13, fontWeight: 'bold' }}>
+                      <span style={{ backgroundColor: 'var(--red)', color: 'white', padding: '4px 10px', borderRadius: 20, fontSize: 13, fontWeight: 'bold' }}>
                         Próx: {getNextDueDate(f)}
                       </span>
                     )}
@@ -419,22 +420,22 @@ export default function FinancingsPage() {
                     <span>{f.paid_installments}/{f.total_installments} parcelas pagas</span>
                     <span>{progress}%</span>
                   </div>
-                  <div style={{ backgroundColor: '#eee', borderRadius: 8, height: 10, overflow: 'hidden' }}>
+                  <div style={{ backgroundColor: 'var(--bg3)', borderRadius: 'var(--radius-sm)', height: 10, overflow: 'hidden' }}>
                     <div style={{ backgroundColor: isFinished ? '#2ecc71' : '#3498db', height: '100%', width: `${progress}%`, borderRadius: 8 }} />
                   </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 16 }}>
-                  <div style={{ backgroundColor: '#f8f9fa', padding: 10, borderRadius: 8, textAlign: 'center' }}>
-                    <div style={{ fontSize: 11, color: '#666' }}>Parcela</div>
-                    <div style={{ fontWeight: 'bold', color: '#e74c3c' }}>R$ {Number(f.installment_amount).toFixed(2)}</div>
+                  <div style={{ backgroundColor: 'var(--bg2)', padding: 10, borderRadius: 'var(--radius-sm)', textAlign: 'center' }}>
+                    <div style={{ fontSize: 11, color: 'var(--text3)' }}>Parcela</div>
+                    <div style={{ fontWeight: 'bold', color: 'var(--red)' }}>R$ {Number(f.installment_amount).toFixed(2)}</div>
                   </div>
-                  <div style={{ backgroundColor: '#f8f9fa', padding: 10, borderRadius: 8, textAlign: 'center' }}>
-                    <div style={{ fontSize: 11, color: '#666' }}>Saldo devedor</div>
-                    <div style={{ fontWeight: 'bold', color: '#e74c3c' }}>R$ {getRemainingAmount(f).toFixed(2)}</div>
+                  <div style={{ backgroundColor: 'var(--bg2)', padding: 10, borderRadius: 'var(--radius-sm)', textAlign: 'center' }}>
+                    <div style={{ fontSize: 11, color: 'var(--text3)' }}>Saldo devedor</div>
+                    <div style={{ fontWeight: 'bold', color: 'var(--red)' }}>R$ {getRemainingAmount(f).toFixed(2)}</div>
                   </div>
-                  <div style={{ backgroundColor: '#f8f9fa', padding: 10, borderRadius: 8, textAlign: 'center' }}>
-                    <div style={{ fontSize: 11, color: '#666' }}>Total</div>
+                  <div style={{ backgroundColor: 'var(--bg2)', padding: 10, borderRadius: 'var(--radius-sm)', textAlign: 'center' }}>
+                    <div style={{ fontSize: 11, color: 'var(--text3)' }}>Total</div>
                     <div style={{ fontWeight: 'bold' }}>R$ {Number(f.total_amount).toFixed(2)}</div>
                   </div>
                 </div>
@@ -442,61 +443,61 @@ export default function FinancingsPage() {
                 {interStatus && (
                   <div style={{ marginBottom: 12, fontSize: 13, color: interStatus.pending > 0 ? '#e67e22' : '#2ecc71', fontWeight: 'bold' }}>
                     🏢 {interStatus.pending > 0 ? `${interStatus.pending} intermediária(s) pendente(s)` : 'Todas intermediárias pagas'}
-                    {' · '}Total: R$ {interStatus.totalAmount.toFixed(2)}
+                    {' · '}Total: {formatCurrency(interStatus.totalAmount)}
                   </div>
                 )}
 
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {!isFinished && (
                     <button onClick={() => handlePayInstallment(f)}
-                      style={{ padding: '8px 16px', backgroundColor: '#2ecc71', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 'bold', fontSize: 14 }}>
+                      style={{ padding: '8px 16px', backgroundColor: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontWeight: 'bold', fontSize: 14 }}>
                       💰 Pagar parcela {f.paid_installments + 1}
                     </button>
                   )}
                   <button onClick={() => toggleExpanded(f.id)}
-                    style={{ padding: '8px 16px', backgroundColor: '#9b59b6', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 14 }}>
+                    style={{ padding: '8px 16px', backgroundColor: 'var(--purple)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: 14 }}>
                     🏢 {isExpanded ? 'Ocultar' : 'Ver'} intermediárias
                   </button>
                   <button onClick={() => startEdit(f)}
-                    style={{ padding: '8px 12px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
+                    style={{ padding: '8px 12px', backgroundColor: 'var(--blue)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>
                     ✏️ Editar
                   </button>
                   <button onClick={() => handleDelete(f.id, f.name)}
-                    style={{ padding: '8px 12px', backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
+                    style={{ padding: '8px 12px', backgroundColor: 'var(--red)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>
                     🗑️
                   </button>
                 </div>
               </div>
 
               {isExpanded && (
-                <div style={{ borderTop: '1px solid #eee', backgroundColor: '#fafafa', padding: 20 }}>
+                <div style={{ borderTop: '1px solid var(--border2)', backgroundColor: 'var(--bg2)', padding: 20 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                     <h3 style={{ margin: 0 }}>🏢 Intermediárias</h3>
                     <button
                       onClick={() => setShowIntermediaryForm(showIntermediaryForm === f.id ? null : f.id)}
-                      style={{ padding: '6px 14px', backgroundColor: '#9b59b6', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 14 }}>
+                      style={{ padding: '6px 14px', backgroundColor: 'var(--purple)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: 14 }}>
                       {showIntermediaryForm === f.id ? '✖️ Cancelar' : '➕ Adicionar'}
                     </button>
                   </div>
 
                   {showIntermediaryForm === f.id && (
-                    <div style={{ backgroundColor: 'white', padding: 16, borderRadius: 8, marginBottom: 16, border: '1px solid #ddd' }}>
+                    <div style={{ backgroundColor: 'var(--surface)', padding: 16, borderRadius: 'var(--radius-sm)', marginBottom: 16, border: '1px solid var(--border)' }}>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 12, alignItems: 'end' }}>
                         <div>
                           <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold', fontSize: 13 }}>Valor:</label>
                           <input type="number" value={intermediaryForm.amount}
                             onChange={(e) => setIntermediaryForm({ ...intermediaryForm, amount: e.target.value })}
                             placeholder="0.00" step="0.01" min="0"
-                            style={{ width: '100%', padding: 8, fontSize: 14, borderRadius: 4, border: '1px solid #ccc' }} />
+                            style={{ width: '100%', padding: 8, fontSize: 14, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} />
                         </div>
                         <div>
                           <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold', fontSize: 13 }}>Data de vencimento:</label>
                           <input type="date" value={intermediaryForm.due_date}
                             onChange={(e) => setIntermediaryForm({ ...intermediaryForm, due_date: e.target.value })}
-                            style={{ width: '100%', padding: 8, fontSize: 14, borderRadius: 4, border: '1px solid #ccc' }} />
+                            style={{ width: '100%', padding: 8, fontSize: 14, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} />
                         </div>
                         <button onClick={() => handleAddIntermediary(f.id)}
-                          style={{ padding: '8px 16px', backgroundColor: '#2ecc71', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 'bold' }}>
+                          style={{ padding: '8px 16px', backgroundColor: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontWeight: 'bold' }}>
                           ➕ Salvar
                         </button>
                       </div>
@@ -504,14 +505,14 @@ export default function FinancingsPage() {
                   )}
 
                   {inters.length === 0 ? (
-                    <p style={{ color: '#666', fontSize: 14, textAlign: 'center', padding: 16 }}>Nenhuma intermediária cadastrada.</p>
+                    <p style={{ color: 'var(--text3)', fontSize: 14, textAlign: 'center', padding: 16 }}>Nenhuma intermediária cadastrada.</p>
                   ) : (
                     inters.map((inter) => {
                       const isOverdue = !inter.paid && inter.due_date < new Date().toISOString().split('T')[0];
                       return (
                         <div key={inter.id} style={{
                           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                          padding: 12, marginBottom: 8, borderRadius: 8,
+                          padding: 12, marginBottom: 8, borderRadius: 'var(--radius-sm)',
                           backgroundColor: inter.paid ? '#f0fff4' : isOverdue ? '#fff5f5' : 'white',
                           border: `1px solid ${inter.paid ? '#2ecc71' : isOverdue ? '#e74c3c' : '#ddd'}`
                         }}>
@@ -519,26 +520,26 @@ export default function FinancingsPage() {
                             <div style={{ fontWeight: 'bold', fontSize: 16, color: inter.paid ? '#2ecc71' : '#e74c3c' }}>
                               R$ {Number(inter.amount).toFixed(2)}
                             </div>
-                            <div style={{ fontSize: 13, color: '#666' }}>
+                            <div style={{ fontSize: 13, color: 'var(--text3)' }}>
                               Vence: {new Date(inter.due_date + 'T12:00:00').toLocaleDateString('pt-BR')}
                               {inter.paid && inter.paid_date && (
-                                <span style={{ color: '#2ecc71', marginLeft: 8 }}>
+                                <span style={{ color: 'var(--green)', marginLeft: 8 }}>
                                   · Pago em {new Date(inter.paid_date + 'T12:00:00').toLocaleDateString('pt-BR')}
                                 </span>
                               )}
-                              {isOverdue && <span style={{ color: '#e74c3c', marginLeft: 8, fontWeight: 'bold' }}>· VENCIDA</span>}
+                              {isOverdue && <span style={{ color: 'var(--red)', marginLeft: 8, fontWeight: 'bold' }}>· VENCIDA</span>}
                             </div>
                           </div>
                           <div style={{ display: 'flex', gap: 8 }}>
                             {!inter.paid && (
                               <button onClick={() => handlePayIntermediary(inter, f.id)}
-                                style={{ padding: '6px 12px', backgroundColor: '#2ecc71', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>
+                                style={{ padding: '6px 12px', backgroundColor: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: 12 }}>
                                 ✅ Pagar
                               </button>
                             )}
-                            {inter.paid && <span style={{ fontSize: 12, color: '#2ecc71', fontWeight: 'bold', padding: '6px 0' }}>✅ Paga</span>}
+                            {inter.paid && <span style={{ fontSize: 12, color: 'var(--green)', fontWeight: 'bold', padding: '6px 0' }}>✅ Paga</span>}
                             <button onClick={() => handleDeleteIntermediary(inter.id, f.id)}
-                              style={{ padding: '6px 10px', backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>
+                              style={{ padding: '6px 10px', backgroundColor: 'var(--red)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: 12 }}>
                               🗑️
                             </button>
                           </div>
@@ -548,7 +549,7 @@ export default function FinancingsPage() {
                   )}
 
                   {inters.length > 0 && (
-                    <div style={{ marginTop: 12, padding: 12, backgroundColor: '#e3f2fd', borderRadius: 8, fontSize: 13 }}>
+                    <div style={{ marginTop: 12, padding: 12, backgroundColor: 'rgba(108,99,255,0.08)', borderRadius: 'var(--radius-sm)', fontSize: 13 }}>
                       <strong>Total intermediárias:</strong> R$ {inters.reduce((s, i) => s + Number(i.amount), 0).toFixed(2)}
                       {' · '}<strong>Pagas:</strong> R$ {inters.filter(i => i.paid).reduce((s, i) => s + Number(i.amount), 0).toFixed(2)}
                       {' · '}<strong>Pendentes:</strong> R$ {inters.filter(i => !i.paid).reduce((s, i) => s + Number(i.amount), 0).toFixed(2)}

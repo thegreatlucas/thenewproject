@@ -46,8 +46,9 @@ export default function SetupCryptoPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/login'); return; }
       setCurrentUserId(user.id);
-      const { data: member } = await supabase
-        .from('household_members').select('household_id').eq('user_id', user.id).single();
+      const { data: members } = await supabase
+        .from('household_members').select('household_id').eq('user_id', user.id).limit(1);
+      const member = members?.[0] ?? null;
       if (member) setHouseholdId(member.household_id);
     }
     init();
