@@ -427,7 +427,8 @@ export default function BudgetsPage() {
                   <div>
                     <div style={{ fontWeight: 'bold', fontSize: 18 }}>{item.categoryName}</div>
                     <div style={{ fontSize: 14, color: 'var(--text3)' }}>
-                      R$ {item.formatCurrency(spent)} de R$ {item.formatCurrency(budget)}
+                      R$ {formatCurrency(item.spent)} de {formatCurrency(item.budget)}
+                    
                     </div>
                   </div>
                 </div>
