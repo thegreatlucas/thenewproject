@@ -145,7 +145,7 @@ export default function BalancesPage() {
                 <>
                   <div style={{ fontSize: 40, marginBottom: 8 }}>{balance?.iOwe ? '😬' : '💰'}</div>
                   <div style={{ fontSize: 15, color: 'var(--text3)', marginBottom: 8 }}>{balance?.iOwe ? `Você deve para ${partnerName}` : `${partnerName} deve para você`}</div>
-                  <div style={{ fontSize: 40, fontWeight: 'bold', color: balance?.iOwe ? '#e74c3c' : '#27ae60', marginBottom: 20 }}>R$ {balance?.formatCurrency(amount)}</div>
+                  <div style={{ fontSize: 40, fontWeight: 'bold', color: balance?.iOwe ? '#e74c3c' : '#27ae60', marginBottom: 20 }}>R$ {formatCurrency(balance?.amount ?? 0)}</div>
                   <button onClick={settleBalance} disabled={settling}
                     style={{ padding: '12px 32px', backgroundColor: settling ? '#95a5a6' : '#2ecc71', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: settling ? 'not-allowed' : 'pointer', fontWeight: 'bold', fontSize: 15 }}>
                     {settling ? '⏳ Registrando...' : '✅ Marcar acerto como feito'}
