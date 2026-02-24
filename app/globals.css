@@ -121,8 +121,7 @@
   --font-body:    'Space Mono', monospace;
 }
 
-.brutalist [data-theme='dark'],
-.brutalist.dark {
+.brutalist[data-theme='dark'] {
   --bg:        #0a0a0a;
   --bg2:       #111111;
   --bg3:       #1a1a1a;
