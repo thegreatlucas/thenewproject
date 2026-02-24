@@ -81,9 +81,9 @@ export default function IncomesPage() {
 
     setIncomes(data || []);
 
+    const currentMonth = new Date().toISOString().slice(0, 7);
     const monthly = (data || [])
-      .filter(i => i.recurrence === 'monthly' && !VOUCHER_TYPES.includes(i.type))
-      .reduce((sum, i) => sum + Number(i.amount), 0);
+      .filter(i => i.month.slice(0, 7) === currentMonth && !VOUCHER_TYPES.includes(i.type))
 
     const voucher = (data || [])
       .filter(i => i.recurrence === 'monthly' && VOUCHER_TYPES.includes(i.type))
