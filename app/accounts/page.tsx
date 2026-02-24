@@ -26,7 +26,7 @@ export default function AccountsPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ name: '', type: 'checking' });
+  const [formData, setFormData] = useState({ name: '', type: 'checking', initial_balance: '0' });
   const router = useRouter();
 
   useEffect(() => {
@@ -80,7 +80,7 @@ export default function AccountsPage() {
 
         const txTotal = (txData || []).reduce((s, t) => s + Number(t.amount), 0);
 
-        balanceMap[acc.id] = incomeTotal - txTotal;
+        balanceMap[acc.id] = (acc.initial_balance || 0) + incomeTotal - txTotal;
       }
 
       setBalances(balanceMap);
@@ -104,7 +104,7 @@ export default function AccountsPage() {
 
     const payload = {
       name: formData.name,
-      type: formData.type,
+      initial_balance: parseFloat(formData.initial_balance) || 0,
       household_id: member.household_id,
       owner_id: user.id,
     };
@@ -136,7 +136,7 @@ export default function AccountsPage() {
 
   function resetForm() {
     setEditingId(null);
-    setFormData({ name: '', type: 'checking' });
+    setFormData({ name: '', type: 'checking', initial_balance: '0' });
     setShowForm(false);
   }
 
@@ -230,6 +230,15 @@ export default function AccountsPage() {
                 🍽️ Contas de vale têm saldo separado e só podem ser usadas para gastos de alimentação.
               </div>
             )}
+            <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Saldo atual (R$):</label>
+            <input
+              type="number" value={formData.initial_balance}
+              onChange={(e) => setFormData({ ...formData, initial_balance: e.target.value })}
+              placeholder="0.00" step="0.01"
+              style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 4, border: '1px solid var(--border)' }}
+            />
+            <small style={{ color: 'var(--text-muted)' }}>Saldo atual da conta. Novos lançamentos serão somados/subtraídos automaticamente.</small>
           </div>
 
           <div style={{ display: 'flex', gap: 8 }}>
