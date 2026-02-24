@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -12,14 +12,6 @@ export default function LoginPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [accountDeleted, setAccountDeleted] = useState(false);
-
-  useEffect(() => {
-    if (searchParams.get('deleted') === 'true') {
-      setAccountDeleted(true);
-    }
-  }, [searchParams]);
 
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
@@ -52,12 +44,12 @@ export default function LoginPage() {
   return (
     <main style={{ padding: 16, maxWidth: 400, margin: '0 auto', paddingTop: 48 }}>
       <h1 style={{ marginBottom: 4 }}>💰 Espaços Financeiros</h1>
-      <p style={{ color: '#666', marginBottom: 32, fontSize: 14 }}>
+      <p style={{ color: 'var(--text3)', marginBottom: 32, fontSize: 14 }}>
         Organize suas finanças em workspaces para uso individual, casal ou família.
       </p>
 
       {/* Toggle */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', border: '1px solid #ddd', borderRadius: 8, marginBottom: 24, overflow: 'hidden' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', marginBottom: 24, overflow: 'hidden' }}>
         <button
           onClick={() => { setMode('signin'); setErrorMsg(null); setSuccessMsg(null); }}
           style={{ padding: '12px', border: 'none', cursor: 'pointer', fontWeight: mode === 'signin' ? 'bold' : 'normal', backgroundColor: mode === 'signin' ? '#3498db' : 'white', color: mode === 'signin' ? 'white' : '#333' }}
@@ -81,7 +73,7 @@ export default function LoginPage() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="seu@email.com"
             required
-            style={{ width: '100%', padding: 12, fontSize: 15, borderRadius: 8, border: '1px solid #ddd' }}
+            style={{ width: '100%', padding: 12, fontSize: 15, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}
           />
         </div>
 
@@ -94,33 +86,18 @@ export default function LoginPage() {
             placeholder="Mínimo 6 caracteres"
             required
             minLength={6}
-            style={{ width: '100%', padding: 12, fontSize: 15, borderRadius: 8, border: '1px solid #ddd' }}
+            style={{ width: '100%', padding: 12, fontSize: 15, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}
           />
         </div>
 
-
-        {accountDeleted && (
-          <div style={{
-            backgroundColor: '#d4edda', border: '1px solid #b8dfc7',
-            borderRadius: 12, padding: '16px 20px', marginBottom: 24,
-            color: '#1a5e34', fontSize: 14, lineHeight: 1.6,
-          }}>
-            <div style={{ fontWeight: 700, marginBottom: 4 }}>✅ Conta excluída com sucesso</div>
-            <div>
-              Em conformidade com a <strong>LGPD (Art. 18, VI)</strong>, todos os seus dados
-              pessoais foram eliminados permanentemente dos nossos servidores.
-            </div>
-          </div>
-        )}
-
         {errorMsg && (
-          <div style={{ color: '#e74c3c', backgroundColor: '#fde8e8', border: '1px solid #f5c6cb', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 14 }}>
+          <div style={{ color: 'var(--red)', backgroundColor: '#fde8e8', border: '1px solid #f5c6cb', borderRadius: 'var(--radius-sm)', padding: 12, marginBottom: 16, fontSize: 14 }}>
             ❌ {errorMsg}
           </div>
         )}
 
         {successMsg && (
-          <div style={{ color: '#155724', backgroundColor: '#d4edda', border: '1px solid #c3e6cb', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 14 }}>
+          <div style={{ color: '#155724', backgroundColor: '#d4edda', border: '1px solid #c3e6cb', borderRadius: 'var(--radius-sm)', padding: 12, marginBottom: 16, fontSize: 14 }}>
             ✅ {successMsg}
           </div>
         )}
@@ -128,7 +105,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          style={{ width: '100%', padding: '14px', backgroundColor: loading ? '#95a5a6' : '#3498db', color: 'white', border: 'none', borderRadius: 8, cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 'bold', fontSize: 16 }}
+          style={{ width: '100%', padding: '14px', backgroundColor: loading ? '#95a5a6' : '#3498db', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 'bold', fontSize: 16 }}
         >
           {loading ? 'Aguarde...' : mode === 'signin' ? '🔐 Entrar' : '✅ Criar conta'}
         </button>

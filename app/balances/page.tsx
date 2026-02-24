@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { formatCurrency } from '@/lib/format';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -24,8 +25,7 @@ export default function BalancesPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/login'); return; }
       setCurrentUserId(user.id);
-      const { data: memberRows } = await supabase.from('household_members').select('household_id').eq('user_id', user.id).limit(1);
-      const member = memberRows?.[0] ?? null;
+      const { data: member } = await supabase.from('household_members').select('household_id').eq('user_id', user.id).single();
       if (!member) { router.push('/setup'); return; }
       setHouseholdId(member.household_id);
       await loadData(member.household_id, user.id);
@@ -60,7 +60,7 @@ export default function BalancesPage() {
       .select('*, categories(name, icon)')
       .eq('household_id', hid)
       .eq('split', 'shared')
-      .order('created_at', { ascending: false })
+      .order('date', { ascending: false })
       .limit(30);
     setSharedTransactions(txs || []);
 
@@ -77,7 +77,7 @@ export default function BalancesPage() {
   async function settleBalance() {
     if (!householdId || !currentUserId || !balance) return;
     const amount = balance.amount;
-    if (!confirm(`Confirmar acerto de R$ ${amount.toFixed(2)} com ${partnerName}? O saldo será zerado.`)) return;
+    if (!confirm(`Confirmar acerto de {ormatCurrency(amount)} com ${partnerName}? O saldo será zerado.`)) return;
     setSettling(true);
 
     // Registra no histórico via monthly_closings
@@ -91,7 +91,7 @@ export default function BalancesPage() {
 
     // Soma despesas do mês atual por usuário
     const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    const { data: monthlyTxs } = await supabase.from('transactions').select('amount, payer_id').eq('household_id', householdId).gte('created_at', firstOfMonth);
+    const { data: monthlyTxs } = await supabase.from('transactions').select('amount, payer_id').eq('household_id', householdId).gte('date', firstOfMonth);
     const u1Exp = (monthlyTxs || []).filter((t: any) => t.payer_id === currentUserId).reduce((s: number, t: any) => s + Number(t.amount), 0);
     const u2Exp = (monthlyTxs || []).filter((t: any) => t.payer_id === partnerId).reduce((s: number, t: any) => s + Number(t.amount), 0);
 
@@ -107,7 +107,7 @@ export default function BalancesPage() {
       user2_expenses: u2Exp,
       settlement_amount: amount,
       closed_by: currentUserId,
-      notes: `Acerto manual de R$ ${amount.toFixed(2)} — ${balance.iOwe ? `${partnerName} recebeu` : `${partnerName} pagou`}`,
+      notes: `Acerto manual de {ormatCurrency(amount)} — ${balance.iOwe ? `${partnerName} recebeu` : `${partnerName} pagou`}`,
     });
 
     // Zera balances
@@ -116,7 +116,7 @@ export default function BalancesPage() {
     setSettling(false);
   }
 
-  if (loading) return <main style={{ padding: 16 }}>Carregando...</main>;
+  if (loading) return <main style={{ padding: 16, color: 'var(--text-muted)' }}>Carregando...</main>;
 
   const isZeroed = !balance || balance.amount < 0.001;
 
@@ -126,15 +126,15 @@ export default function BalancesPage() {
       <main style={{ padding: 16, maxWidth: 700, margin: '0 auto' }}>
 
         {!hasPartner ? (
-          <div style={{ border: '1px solid var(--border)', padding: 24, borderRadius: 12, textAlign: 'center', color: 'var(--text3)' }}>
+          <div style={{ border: '1px solid var(--border)', padding: 24, borderRadius: 'var(--radius)', textAlign: 'center', color: 'var(--text3)' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>👤</div>
             <h3>Nenhum parceiro(a) no household ainda</h3>
-            <Link href="/setup"><button style={{ padding: '10px 20px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', marginTop: 16 }}>Ver código de convite</button></Link>
+            <Link href="/setup"><button style={{ padding: '10px 20px', backgroundColor: 'var(--blue)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', marginTop: 16 }}>Ver código de convite</button></Link>
           </div>
         ) : (
           <>
             {/* Card de saldo */}
-            <div style={{ padding: 28, borderRadius: 16, marginBottom: 24, textAlign: 'center', border: isZeroed ? '2px solid #2ecc71' : '2px solid #f39c12', backgroundColor: isZeroed ? '#f0fff4' : '#fffdf0' }}>
+            <div style={{ padding: 28, borderRadius: 'var(--radius-lg)', marginBottom: 24, textAlign: 'center', border: isZeroed ? '2px solid #2ecc71' : '2px solid #f39c12', backgroundColor: isZeroed ? '#f0fff4' : '#fffdf0' }}>
               {isZeroed ? (
                 <>
                   <div style={{ fontSize: 52 }}>🎉</div>
@@ -145,9 +145,9 @@ export default function BalancesPage() {
                 <>
                   <div style={{ fontSize: 40, marginBottom: 8 }}>{balance?.iOwe ? '😬' : '💰'}</div>
                   <div style={{ fontSize: 15, color: 'var(--text3)', marginBottom: 8 }}>{balance?.iOwe ? `Você deve para ${partnerName}` : `${partnerName} deve para você`}</div>
-                  <div style={{ fontSize: 40, fontWeight: 'bold', color: balance?.iOwe ? '#e74c3c' : '#27ae60', marginBottom: 20 }}>R$ {balance?.amount.toFixed(2)}</div>
+                  <div style={{ fontSize: 40, fontWeight: 'bold', color: balance?.iOwe ? '#e74c3c' : '#27ae60', marginBottom: 20 }}>R$ {balance?.formatCurrency(amount)}</div>
                   <button onClick={settleBalance} disabled={settling}
-                    style={{ padding: '12px 32px', backgroundColor: settling ? '#95a5a6' : '#2ecc71', color: 'white', border: 'none', borderRadius: 8, cursor: settling ? 'not-allowed' : 'pointer', fontWeight: 'bold', fontSize: 15 }}>
+                    style={{ padding: '12px 32px', backgroundColor: settling ? '#95a5a6' : '#2ecc71', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: settling ? 'not-allowed' : 'pointer', fontWeight: 'bold', fontSize: 15 }}>
                     {settling ? '⏳ Registrando...' : '✅ Marcar acerto como feito'}
                   </button>
                   <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 10 }}>Faça a transferência fora do app e clique acima para zerar o saldo.</p>
@@ -156,7 +156,7 @@ export default function BalancesPage() {
             </div>
 
             {/* Tabs */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', border: '1px solid var(--border)', borderRadius: 8, marginBottom: 20, overflow: 'hidden' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', marginBottom: 20, overflow: 'hidden' }}>
               {([['current', '📋 Despesas compartilhadas'], ['history', '🤝 Histórico de acertos']] as const).map(([tab, label]) => (
                 <button key={tab} onClick={() => setActiveTab(tab)}
                   style={{ padding: 12, border: 'none', cursor: 'pointer', fontWeight: activeTab === tab ? 'bold' : 'normal', backgroundColor: activeTab === tab ? '#3498db' : 'white', color: activeTab === tab ? 'white' : '#333', fontSize: 13 }}>
@@ -170,10 +170,10 @@ export default function BalancesPage() {
               sharedTransactions.length === 0 ? (
                 <div style={{ padding: 24, textAlign: 'center', color: 'var(--text3)', border: '1px solid var(--border)', borderRadius: 12 }}>
                   <p style={{ marginBottom: 12 }}>Nenhuma despesa compartilhada ainda.</p>
-                  <Link href="/transactions/new"><button style={{ padding: '10px 20px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer' }}>➕ Lançar despesa</button></Link>
+                  <Link href="/transactions/new"><button style={{ padding: '10px 20px', backgroundColor: 'var(--blue)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>➕ Lançar despesa</button></Link>
                 </div>
               ) : (
-                <div style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+                <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden' }}>
                   {sharedTransactions.map((tx, i) => {
                     const isPayer = tx.payer_id === currentUserId;
                     const half = Number(tx.amount) / 2;
@@ -185,14 +185,14 @@ export default function BalancesPage() {
                             <span style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tx.description}</span>
                           </div>
                           <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                            {new Date(tx.created_at).toLocaleDateString('pt-BR')}
+                            {new Date(tx.date + 'T12:00:00').toLocaleDateString('pt-BR')}
                             {tx.categories?.name ? ` · ${tx.categories.name}` : ''}
                             {' · '}<span style={{ color: isPayer ? '#27ae60' : '#e67e22' }}>{isPayer ? '💳 Você pagou' : `💳 ${partnerName} pagou`}</span>
                           </div>
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                          <div style={{ fontWeight: 'bold', color: 'var(--text)' }}>R$ {Number(tx.amount).toFixed(2)}</div>
-                          <div style={{ fontSize: 12, color: isPayer ? '#27ae60' : '#e74c3c', marginTop: 2 }}>{isPayer ? `+R$ ${half.toFixed(2)}` : `-R$ ${half.toFixed(2)}`}</div>
+                          <div style={{ fontWeight: 'bold', color: 'var(--text2)' }}>R$ {Number(tx.amount).toFixed(2)}</div>
+                          <div style={{ fontSize: 12, color: isPayer ? '#27ae60' : '#e74c3c', marginTop: 2 }}>{isPayer ? `+{ormatCurrency(half)}` : `-{ormatCurrency(half)}`}</div>
                         </div>
                       </div>
                     );
@@ -215,35 +215,35 @@ export default function BalancesPage() {
                     const date = new Date(closing.closed_at);
                     const meSettled = closing.closed_by === currentUserId;
                     return (
-                      <div key={closing.id} style={{ border: '1px solid var(--border)', borderRadius: 12, padding: 16, backgroundColor: 'var(--bg2)' }}>
+                      <div key={closing.id} style={{ border: '1px solid #dde', borderRadius: 'var(--radius)', padding: 16, backgroundColor: '#f8fbff' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                           <div>
                             <div style={{ fontWeight: 'bold', fontSize: 15 }}>
                               🤝 Acerto de {date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
                             </div>
-                            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
+                            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
                               Registrado por {meSettled ? 'você' : partnerName}
                             </div>
                           </div>
                           <div style={{ textAlign: 'right' }}>
                             <div style={{ fontWeight: 'bold', fontSize: 18, color: '#27ae60' }}>R$ {Number(closing.settlement_amount).toFixed(2)}</div>
-                            <div style={{ fontSize: 11, color: 'var(--text3)' }}>transferido</div>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>transferido</div>
                           </div>
                         </div>
                         {closing.notes && (
-                          <div style={{ fontSize: 13, color: 'var(--text3)', backgroundColor: 'var(--surface)', padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border2)' }}>
+                          <div style={{ fontSize: 13, color: 'var(--text3)', backgroundColor: 'var(--surface)', padding: '6px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border2)' }}>
                             {closing.notes}
                           </div>
                         )}
                         {(closing.user1_expenses > 0 || closing.user2_expenses > 0) && (
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
-                            <div style={{ backgroundColor: 'var(--surface)', padding: 8, borderRadius: 6, textAlign: 'center', border: '1px solid var(--border2)' }}>
-                              <div style={{ fontSize: 11, color: 'var(--text3)' }}>Você gastou</div>
-                              <div style={{ fontWeight: 'bold', color: '#e74c3c' }}>R$ {Number(closing.user1_expenses).toFixed(2)}</div>
+                            <div style={{ backgroundColor: 'var(--surface)', padding: 8, borderRadius: 'var(--radius-sm)', textAlign: 'center', border: '1px solid var(--border2)' }}>
+                              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Você gastou</div>
+                              <div style={{ fontWeight: 'bold', color: 'var(--red)' }}>R$ {Number(closing.user1_expenses).toFixed(2)}</div>
                             </div>
-                            <div style={{ backgroundColor: 'var(--surface)', padding: 8, borderRadius: 6, textAlign: 'center', border: '1px solid var(--border2)' }}>
-                              <div style={{ fontSize: 11, color: 'var(--text3)' }}>{partnerName} gastou</div>
-                              <div style={{ fontWeight: 'bold', color: '#e74c3c' }}>R$ {Number(closing.user2_expenses).toFixed(2)}</div>
+                            <div style={{ backgroundColor: 'var(--surface)', padding: 8, borderRadius: 'var(--radius-sm)', textAlign: 'center', border: '1px solid var(--border2)' }}>
+                              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{partnerName} gastou</div>
+                              <div style={{ fontWeight: 'bold', color: 'var(--red)' }}>R$ {Number(closing.user2_expenses).toFixed(2)}</div>
                             </div>
                           </div>
                         )}

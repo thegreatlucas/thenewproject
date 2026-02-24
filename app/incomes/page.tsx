@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { formatCurrency } from '@/lib/format';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -53,13 +54,12 @@ export default function IncomesPage() {
       if (!user) { router.push('/login'); return; }
       setUserId(user.id);
 
-      const { data: memberRows } = await supabase
+      const { data: member } = await supabase
         .from('household_members')
         .select('household_id')
         .eq('user_id', user.id)
-        .limit(1);
+        .single();
 
-      const member = memberRows?.[0] ?? null;
       if (!member) { router.push('/setup'); return; }
       setHouseholdId(member.household_id);
 
@@ -77,13 +77,13 @@ export default function IncomesPage() {
       .from('incomes')
       .select('*, accounts(name, type)')
       .eq('household_id', hid)
+      .eq('user_id', uid)
       .order('month', { ascending: false });
 
     setIncomes(data || []);
 
-    const currentMonth = new Date().toISOString().slice(0, 7);
     const monthly = (data || [])
-      .filter(i => i.month.slice(0, 7) === currentMonth && !VOUCHER_TYPES.includes(i.type))
+      .filter(i => i.recurrence === 'monthly' && !VOUCHER_TYPES.includes(i.type))
       .reduce((sum, i) => sum + Number(i.amount), 0);
 
     const voucher = (data || [])
@@ -109,13 +109,12 @@ export default function IncomesPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data: memberRows2 } = await supabase
+    const { data: member } = await supabase
       .from('household_members')
       .select('household_id')
       .eq('user_id', user.id)
-      .limit(1);
+      .single();
 
-    const member = memberRows2?.[0] ?? null;
     if (!member) return;
 
     if (VOUCHER_TYPES.includes(formData.type) && !formData.account_id) {
@@ -200,7 +199,7 @@ export default function IncomesPage() {
 
   const monthKeys = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
 
-  if (loading) return <main style={{ padding: 16 }}>Carregando...</main>;
+  if (loading) return <main style={{ padding: 16, color: 'var(--text-muted)' }}>Carregando...</main>;
 
   return (
     <>
@@ -210,30 +209,30 @@ export default function IncomesPage() {
         <h1>💰 Receitas</h1>
         <button
           onClick={() => { resetForm(); setShowForm(!showForm); }}
-          style={{ padding: '8px 16px', fontSize: 16, backgroundColor: showForm ? '#e74c3c' : '#2ecc71', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer' }}
+          style={{ padding: '8px 16px', fontSize: 16, backgroundColor: showForm ? '#e74c3c' : '#2ecc71', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}
         >
           {showForm ? '✖️ Cancelar' : '➕ Nova receita'}
         </button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 24 }}>
-        <div style={{ background: 'linear-gradient(135deg, #2ecc71, #27ae60)', padding: 16, borderRadius: 12, color: 'white' }}>
+        <div style={{ background: 'linear-gradient(135deg, #2ecc71, #27ae60)', padding: 16, borderRadius: 'var(--radius)', color: 'white' }}>
           <div style={{ fontSize: 12, opacity: 0.9 }}>Renda mensal (dinheiro)</div>
-          <div style={{ fontSize: 22, fontWeight: 'bold' }}>R$ {totalMonthly.toFixed(2)}</div>
+          <div style={{ fontSize: 22, fontWeight: 'bold' }}>{formatCurrency(totalMonthly)}</div>
         </div>
-        <div style={{ background: 'linear-gradient(135deg, #f39c12, #e67e22)', padding: 16, borderRadius: 12, color: 'white' }}>
+        <div style={{ background: 'linear-gradient(135deg, #f39c12, #e67e22)', padding: 16, borderRadius: 'var(--radius)', color: 'white' }}>
           <div style={{ fontSize: 12, opacity: 0.9 }}>Vale Refeição/Alimentação</div>
-          <div style={{ fontSize: 22, fontWeight: 'bold' }}>R$ {totalVoucher.toFixed(2)}</div>
+          <div style={{ fontSize: 22, fontWeight: 'bold' }}>{formatCurrency(totalVoucher)}</div>
           <div style={{ fontSize: 11, opacity: 0.8, marginTop: 2 }}>Saldo separado</div>
         </div>
-        <div style={{ background: 'linear-gradient(135deg, #3498db, #2980b9)', padding: 16, borderRadius: 12, color: 'white' }}>
+        <div style={{ background: 'linear-gradient(135deg, #3498db, #2980b9)', padding: 16, borderRadius: 'var(--radius)', color: 'white' }}>
           <div style={{ fontSize: 12, opacity: 0.9 }}>Total de lançamentos</div>
           <div style={{ fontSize: 22, fontWeight: 'bold' }}>{incomes.length}</div>
         </div>
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} style={{ backgroundColor: '#f5f5f5', padding: 20, borderRadius: 8, marginBottom: 24 }}>
+        <form onSubmit={handleSubmit} style={{ backgroundColor: 'var(--bg2)', padding: 20, borderRadius: 'var(--radius-sm)', marginBottom: 24 }}>
           <h3 style={{ marginTop: 0 }}>{editingId ? 'Editar Receita' : 'Nova Receita'}</h3>
 
           <div style={{ marginBottom: 16 }}>
@@ -242,7 +241,7 @@ export default function IncomesPage() {
               type="text" value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Ex: Salário CLT, VR Empresa X..."
-              style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 4, border: '1px solid #ccc' }}
+              style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}
               required
             />
           </div>
@@ -254,7 +253,7 @@ export default function IncomesPage() {
                 type="number" value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                 placeholder="0.00" step="0.01" min="0"
-                style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 4, border: '1px solid #ccc' }}
+                style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}
                 required
               />
             </div>
@@ -263,7 +262,7 @@ export default function IncomesPage() {
               <input
                 type="month" value={formData.month}
                 onChange={(e) => setFormData({ ...formData, month: e.target.value })}
-                style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 4, border: '1px solid #ccc' }}
+                style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}
                 required
               />
             </div>
@@ -275,7 +274,7 @@ export default function IncomesPage() {
               {INCOME_TYPES.map((t) => (
                 <button key={t.value} type="button"
                   onClick={() => setFormData({ ...formData, type: t.value, account_id: '' })}
-                  style={{ padding: 10, border: formData.type === t.value ? '2px solid #2ecc71' : '1px solid #ddd', borderRadius: 8, backgroundColor: formData.type === t.value ? '#e8f8f0' : 'white', cursor: 'pointer', fontWeight: formData.type === t.value ? 'bold' : 'normal', fontSize: 13 }}
+                  style={{ padding: 10, border: formData.type === t.value ? '2px solid #2ecc71' : '1px solid #ddd', borderRadius: 'var(--radius-sm)', backgroundColor: formData.type === t.value ? '#e8f8f0' : 'white', cursor: 'pointer', fontWeight: formData.type === t.value ? 'bold' : 'normal', fontSize: 13 }}
                 >
                   {t.label}
                 </button>
@@ -288,17 +287,17 @@ export default function IncomesPage() {
               {isVoucherType ? '🏦 Conta do vale (obrigatório):' : '🏦 Creditar em conta (opcional):'}
             </label>
             {isVoucherType && (
-              <div style={{ backgroundColor: '#fff3cd', padding: 10, borderRadius: 6, marginBottom: 8, fontSize: 13 }}>
+              <div style={{ backgroundColor: '#fff3cd', padding: 10, borderRadius: 'var(--radius-sm)', marginBottom: 8, fontSize: 13 }}>
                 ⚠️ VR/VA são saldos separados. Vincule a uma conta do tipo &quot;Vale Refeição&quot; para controlar o saldo corretamente.
                 {accounts.filter(a => a.type === 'meal_voucher' || a.type === 'food_voucher').length === 0 && (
-                  <span> <Link href="/accounts" style={{ color: '#3498db' }}>Criar conta VR →</Link></span>
+                  <span> <Link href="/accounts" style={{ color: 'var(--blue)' }}>Criar conta VR →</Link></span>
                 )}
               </div>
             )}
             <select
               value={formData.account_id}
               onChange={(e) => setFormData({ ...formData, account_id: e.target.value })}
-              style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 4, border: `1px solid ${isVoucherType && !formData.account_id ? '#e74c3c' : '#ccc'}` }}
+              style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 'var(--radius-sm)', border: `1px solid ${isVoucherType && !formData.account_id ? '#e74c3c' : '#ccc'}` }}
               required={isVoucherType}
             >
               <option value="">{isVoucherType ? 'Selecione a conta do vale...' : 'Nenhuma (não vincular)'}</option>
@@ -314,7 +313,7 @@ export default function IncomesPage() {
               {RECURRENCE_OPTIONS.map((r) => (
                 <button key={r.value} type="button"
                   onClick={() => setFormData({ ...formData, recurrence: r.value })}
-                  style={{ padding: 12, border: formData.recurrence === r.value ? '2px solid #2ecc71' : '1px solid #ddd', borderRadius: 8, backgroundColor: formData.recurrence === r.value ? '#e8f8f0' : 'white', cursor: 'pointer', fontWeight: formData.recurrence === r.value ? 'bold' : 'normal' }}
+                  style={{ padding: 12, border: formData.recurrence === r.value ? '2px solid #2ecc71' : '1px solid #ddd', borderRadius: 'var(--radius-sm)', backgroundColor: formData.recurrence === r.value ? '#e8f8f0' : 'white', cursor: 'pointer', fontWeight: formData.recurrence === r.value ? 'bold' : 'normal' }}
                 >
                   {r.label}
                 </button>
@@ -323,15 +322,15 @@ export default function IncomesPage() {
           </div>
 
           {formData.recurrence === 'annual' && (
-            <div style={{ marginBottom: 16, padding: 12, backgroundColor: '#f0f8ff', borderRadius: 8, border: '1px solid #3498db' }}>
+            <div style={{ marginBottom: 16, padding: 12, backgroundColor: '#f0f8ff', borderRadius: 'var(--radius-sm)', border: '1px solid #3498db' }}>
               <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>📋 Parcelamento:</label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 <div>
-                  <label style={{ fontSize: 13, color: '#666' }}>Parcelas:</label>
+                  <label style={{ fontSize: 13, color: 'var(--text3)' }}>Parcelas:</label>
                   <select
                     value={formData.installments}
                     onChange={(e) => setFormData({ ...formData, installments: e.target.value })}
-                    style={{ width: '100%', padding: 8, fontSize: 14, borderRadius: 6, border: '1px solid #ccc', marginTop: 4 }}
+                    style={{ width: '100%', padding: 8, fontSize: 14, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', marginTop: 4 }}
                   >
                     {[1,2,3,4,5,6,7,8,9,10,11,12].map(n => (
                       <option key={n} value={n}>{n === 1 ? 'À vista' : `${n}x`}</option>
@@ -339,7 +338,7 @@ export default function IncomesPage() {
                   </select>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 2 }}>
-                  <p style={{ fontSize: 12, color: '#3498db', margin: 0 }}>
+                  <p style={{ fontSize: 12, color: 'var(--blue)', margin: 0 }}>
                     {formData.installments === '1'
                       ? 'Pago de uma vez'
                       : `${formData.installments}x de R$ ${formData.amount ? (parseFloat(formData.amount) / parseInt(formData.installments)).toFixed(2) : '0.00'}`}
@@ -350,10 +349,10 @@ export default function IncomesPage() {
           )}
 
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="submit" style={{ padding: '10px 20px', fontSize: 16, backgroundColor: '#2ecc71', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+            <button type="submit" style={{ padding: '10px 20px', fontSize: 16, backgroundColor: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>
               {editingId ? '💾 Salvar' : '➕ Criar'}
             </button>
-            <button type="button" onClick={resetForm} style={{ padding: '10px 20px', fontSize: 16, backgroundColor: '#95a5a6', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+            <button type="button" onClick={resetForm} style={{ padding: '10px 20px', fontSize: 16, backgroundColor: 'var(--text-muted)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>
               Cancelar
             </button>
           </div>
@@ -361,7 +360,7 @@ export default function IncomesPage() {
       )}
 
       {incomes.length === 0 ? (
-        <p style={{ textAlign: 'center', color: '#666', padding: 32 }}>Nenhuma receita cadastrada ainda.</p>
+        <p style={{ textAlign: 'center', color: 'var(--text3)', padding: 32 }}>Nenhuma receita cadastrada ainda.</p>
       ) : (
         monthKeys.map((monthKey) => {
           const monthIncomes = grouped[monthKey];
@@ -374,29 +373,29 @@ export default function IncomesPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, paddingBottom: 8, borderBottom: '2px solid #eee' }}>
                 <h3 style={{ margin: 0, textTransform: 'capitalize' }}>{monthLabel}</h3>
                 <div style={{ textAlign: 'right' }}>
-                  {monthCash > 0 && <div style={{ color: '#2ecc71', fontWeight: 'bold', fontSize: 14 }}>💵 R$ {monthCash.toFixed(2)}</div>}
-                  {monthVoucher > 0 && <div style={{ color: '#f39c12', fontWeight: 'bold', fontSize: 14 }}>🍽️ R$ {monthVoucher.toFixed(2)}</div>}
+                  {monthCash > 0 && <div style={{ color: 'var(--green)', fontWeight: 'bold', fontSize: 14 }}>💵 {formatCurrency(monthCash)}</div>}
+                  {monthVoucher > 0 && <div style={{ color: 'var(--orange)', fontWeight: 'bold', fontSize: 14 }}>🍽️ {formatCurrency(monthVoucher)}</div>}
                 </div>
               </div>
 
               {monthIncomes.map((income: any) => (
                 <div key={income.id} style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: 12, marginBottom: 8, borderRadius: 8,
+                  padding: 12, marginBottom: 8, borderRadius: 'var(--radius-sm)',
                   backgroundColor: VOUCHER_TYPES.includes(income.type) ? '#fffbf0' : 'white',
                   border: `1px solid ${VOUCHER_TYPES.includes(income.type) ? '#f39c12' : '#ddd'}`
                 }}>
                   <div>
                     <div style={{ fontWeight: 'bold' }}>{income.description}</div>
-                    <div style={{ fontSize: 13, color: '#666' }}>
+                    <div style={{ fontSize: 13, color: 'var(--text3)' }}>
                       {getTypeLabel(income.type)}
-                      {income.recurrence === 'monthly' && <span style={{ marginLeft: 8, color: '#3498db' }}>· Mensal</span>}
+                      {income.recurrence === 'monthly' && <span style={{ marginLeft: 8, color: 'var(--blue)' }}>· Mensal</span>}
                       {income.recurrence === 'annual' && (
-                        <span style={{ marginLeft: 8, color: '#9b59b6' }}>
-                          · Anual {income.installments > 1 ? `· ${income.installments}x de R$ ${(Number(income.amount)/income.installments).toFixed(2)}` : '· À vista'}
+                        <span style={{ marginLeft: 8, color: 'var(--purple)' }}>
+                          · Anual {income.installments > 1 ? `· ${income.installments}x de {ormatCurrency((Number(income.amount)/income.installments))}` : '· À vista'}
                         </span>
                       )}
-                      {income.accounts?.name && <span style={{ marginLeft: 8, color: '#9b59b6' }}>· {income.accounts.name}</span>}
+                      {income.accounts?.name && <span style={{ marginLeft: 8, color: 'var(--purple)' }}>· {income.accounts.name}</span>}
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -404,9 +403,9 @@ export default function IncomesPage() {
                       R$ {Number(income.amount).toFixed(2)}
                     </span>
                     <button onClick={() => startEdit(income)}
-                      style={{ padding: '6px 10px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>✏️</button>
+                      style={{ padding: '6px 10px', backgroundColor: 'var(--blue)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: 12 }}>✏️</button>
                     <button onClick={() => handleDelete(income.id, income.description)}
-                      style={{ padding: '6px 10px', backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>🗑️</button>
+                      style={{ padding: '6px 10px', backgroundColor: 'var(--red)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: 12 }}>🗑️</button>
                   </div>
                 </div>
               ))}

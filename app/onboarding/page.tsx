@@ -65,12 +65,11 @@ export default function OnboardingPage() {
     setUserId(user.id);
     setUserName(user.user_metadata?.name || user.email?.split('@')[0] || '');
 
-    const { data: members } = await supabase
+    const { data: member } = await supabase
       .from('household_members')
       .select('household_id')
       .eq('user_id', user.id)
-      .limit(1);
-    const member = members?.[0] ?? null;
+      .single();
 
     if (!member) { router.push('/setup'); return; }
     setHouseholdId(member.household_id);
@@ -169,12 +168,12 @@ export default function OnboardingPage() {
 
   // ── Shared styles ──────────────────────────────────────────
   const inputStyle: React.CSSProperties = {
-    padding: '11px 14px', fontSize: 14, borderRadius: 10,
+    padding: '11px 14px', fontSize: 14, borderRadius: 'var(--radius)',
     border: '1px solid #e0e0e0', outline: 'none',
-    backgroundColor: 'white', boxSizing: 'border-box',
+    backgroundColor: 'var(--surface)', boxSizing: 'border-box',
   };
 
-  if (initLoading) return <main style={{ padding: 24 }}><p style={{ color: '#999' }}>Carregando...</p></main>;
+  if (initLoading) return <main style={{ padding: 24 }}><p style={{ color: 'var(--text-muted)' }}>Carregando...</p></main>;
 
   // ── Progress bar ──────────────────────────────────────────
   const steps = ['Renda', 'Contas', 'Recorrências'];
@@ -188,7 +187,7 @@ export default function OnboardingPage() {
         <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>
           Olá{userName ? `, ${userName}` : ''}! Vamos configurar tudo.
         </h1>
-        <p style={{ fontSize: 14, color: '#888', margin: '8px 0 0' }}>
+        <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: '8px 0 0' }}>
           3 passos rápidos para começar a usar o app.
         </p>
       </div>
@@ -227,15 +226,15 @@ export default function OnboardingPage() {
       {step === 1 && (
         <div>
           <h2 style={{ fontSize: 18, marginBottom: 4 }}>💵 Sua renda mensal</h2>
-          <p style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>
             Adicione suas fontes de renda. Pode pular e adicionar depois.
           </p>
 
           {incomes.map((inc, i) => (
-            <div key={i} style={{ border: '1px solid #eee', borderRadius: 12, padding: 16, marginBottom: 12, backgroundColor: '#fafafa' }}>
+            <div key={i} style={{ border: '1px solid var(--border2)', borderRadius: 'var(--radius)', padding: 16, marginBottom: 12, backgroundColor: 'var(--bg2)' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
                 <div>
-                  <div style={{ fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 600 }}>Descrição</div>
+                  <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 4, fontWeight: 600 }}>Descrição</div>
                   <input
                     type="text"
                     placeholder="Ex: Salário CLT"
@@ -245,7 +244,7 @@ export default function OnboardingPage() {
                   />
                 </div>
                 <div>
-                  <div style={{ fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 600 }}>Valor (R$)</div>
+                  <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 4, fontWeight: 600 }}>Valor (R$)</div>
                   <input
                     type="number"
                     placeholder="5000"
@@ -256,7 +255,7 @@ export default function OnboardingPage() {
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 600 }}>Tipo</div>
+                <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 4, fontWeight: 600 }}>Tipo</div>
                 <select
                   value={inc.type}
                   onChange={e => setIncomes(incomes.map((x, j) => j === i ? { ...x, type: e.target.value } : x))}
@@ -268,7 +267,7 @@ export default function OnboardingPage() {
               {incomes.length > 1 && (
                 <button
                   onClick={() => setIncomes(incomes.filter((_, j) => j !== i))}
-                  style={{ marginTop: 10, background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer', fontSize: 12 }}
+                  style={{ marginTop: 10, background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 12 }}
                 >
                   × Remover
                 </button>
@@ -278,7 +277,7 @@ export default function OnboardingPage() {
 
           <button
             onClick={() => setIncomes([...incomes, { description: '', amount: '', type: 'salary' }])}
-            style={{ width: '100%', padding: '10px', border: '1px dashed #3498db', borderRadius: 10, backgroundColor: 'transparent', color: '#3498db', cursor: 'pointer', fontSize: 14, marginBottom: 20 }}
+            style={{ width: '100%', padding: '10px', border: '1px dashed #3498db', borderRadius: 'var(--radius)', backgroundColor: 'transparent', color: 'var(--blue)', cursor: 'pointer', fontSize: 14, marginBottom: 20 }}
           >
             + Adicionar outra renda
           </button>
@@ -286,14 +285,14 @@ export default function OnboardingPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <button
               onClick={() => setStep(2)}
-              style={{ padding: '13px', border: '1px solid #ddd', borderRadius: 10, backgroundColor: 'white', cursor: 'pointer', color: '#888', fontSize: 14 }}
+              style={{ padding: '13px', border: '1px solid var(--border)', borderRadius: 'var(--radius)', backgroundColor: 'var(--surface)', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 14 }}
             >
               Pular por agora
             </button>
             <button
               onClick={handleSaveIncomes}
               disabled={loading}
-              style={{ padding: '13px', border: 'none', borderRadius: 10, backgroundColor: loading ? '#95a5a6' : '#3498db', color: 'white', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 14 }}
+              style={{ padding: '13px', border: 'none', borderRadius: 'var(--radius)', backgroundColor: loading ? '#95a5a6' : '#3498db', color: 'white', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 14 }}
             >
               {loading ? 'Salvando...' : 'Próximo →'}
             </button>
@@ -305,15 +304,15 @@ export default function OnboardingPage() {
       {step === 2 && (
         <div>
           <h2 style={{ fontSize: 18, marginBottom: 4 }}>🏦 Suas contas</h2>
-          <p style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>
             Cadastre suas contas bancárias para rastrear de onde saem os gastos.
           </p>
 
           {accounts.map((acc, i) => (
-            <div key={i} style={{ border: '1px solid #eee', borderRadius: 12, padding: 16, marginBottom: 12, backgroundColor: '#fafafa' }}>
+            <div key={i} style={{ border: '1px solid var(--border2)', borderRadius: 'var(--radius)', padding: 16, marginBottom: 12, backgroundColor: 'var(--bg2)' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div>
-                  <div style={{ fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 600 }}>Nome</div>
+                  <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 4, fontWeight: 600 }}>Nome</div>
                   <input
                     type="text"
                     placeholder="Ex: Nubank, Inter, Bradesco..."
@@ -323,7 +322,7 @@ export default function OnboardingPage() {
                   />
                 </div>
                 <div>
-                  <div style={{ fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 600 }}>Tipo</div>
+                  <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 4, fontWeight: 600 }}>Tipo</div>
                   <select
                     value={acc.type}
                     onChange={e => setAccounts(accounts.map((x, j) => j === i ? { ...x, type: e.target.value } : x))}
@@ -336,7 +335,7 @@ export default function OnboardingPage() {
               {accounts.length > 1 && (
                 <button
                   onClick={() => setAccounts(accounts.filter((_, j) => j !== i))}
-                  style={{ marginTop: 10, background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer', fontSize: 12 }}
+                  style={{ marginTop: 10, background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 12 }}
                 >
                   × Remover
                 </button>
@@ -346,7 +345,7 @@ export default function OnboardingPage() {
 
           <button
             onClick={() => setAccounts([...accounts, { name: '', type: 'checking' }])}
-            style={{ width: '100%', padding: '10px', border: '1px dashed #3498db', borderRadius: 10, backgroundColor: 'transparent', color: '#3498db', cursor: 'pointer', fontSize: 14, marginBottom: 20 }}
+            style={{ width: '100%', padding: '10px', border: '1px dashed #3498db', borderRadius: 'var(--radius)', backgroundColor: 'transparent', color: 'var(--blue)', cursor: 'pointer', fontSize: 14, marginBottom: 20 }}
           >
             + Adicionar outra conta
           </button>
@@ -354,14 +353,14 @@ export default function OnboardingPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <button
               onClick={() => setStep(1)}
-              style={{ padding: '13px', border: '1px solid #ddd', borderRadius: 10, backgroundColor: 'white', cursor: 'pointer', color: '#888', fontSize: 14 }}
+              style={{ padding: '13px', border: '1px solid var(--border)', borderRadius: 'var(--radius)', backgroundColor: 'var(--surface)', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 14 }}
             >
               ← Voltar
             </button>
             <button
               onClick={handleSaveAccounts}
               disabled={loading}
-              style={{ padding: '13px', border: 'none', borderRadius: 10, backgroundColor: loading ? '#95a5a6' : '#3498db', color: 'white', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 14 }}
+              style={{ padding: '13px', border: 'none', borderRadius: 'var(--radius)', backgroundColor: loading ? '#95a5a6' : '#3498db', color: 'white', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 14 }}
             >
               {loading ? 'Salvando...' : 'Próximo →'}
             </button>
@@ -369,7 +368,7 @@ export default function OnboardingPage() {
 
           <button
             onClick={() => setStep(3)}
-            style={{ width: '100%', marginTop: 10, padding: '10px', border: 'none', background: 'none', color: '#aaa', cursor: 'pointer', fontSize: 13 }}
+            style={{ width: '100%', marginTop: 10, padding: '10px', border: 'none', background: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13 }}
           >
             Pular por agora
           </button>
@@ -380,13 +379,13 @@ export default function OnboardingPage() {
       {step === 3 && (
         <div>
           <h2 style={{ fontSize: 18, marginBottom: 4 }}>🔁 Contas fixas mensais</h2>
-          <p style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>
             Adicione contas que se repetem todo mês. O app vai lembrá-los de pagar.
           </p>
 
           {/* Sugestões rápidas */}
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>Sugestões rápidas:</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>Sugestões rápidas:</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {RECURRENCE_SUGGESTIONS.map(s => (
                 <button
@@ -398,7 +397,7 @@ export default function OnboardingPage() {
                     }
                   }}
                   style={{
-                    padding: '6px 12px', border: '1px solid #ddd', borderRadius: 20,
+                    padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 20,
                     backgroundColor: recurrences.some(r => r.name === s.name) ? '#e8f4fd' : 'white',
                     cursor: 'pointer', fontSize: 13,
                     color: recurrences.some(r => r.name === s.name) ? '#3498db' : '#555',
@@ -411,10 +410,10 @@ export default function OnboardingPage() {
           </div>
 
           {recurrences.map((rec, i) => (
-            <div key={i} style={{ border: '1px solid #eee', borderRadius: 12, padding: 16, marginBottom: 12, backgroundColor: '#fafafa' }}>
+            <div key={i} style={{ border: '1px solid var(--border2)', borderRadius: 'var(--radius)', padding: 16, marginBottom: 12, backgroundColor: 'var(--bg2)' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 10 }}>
                 <div>
-                  <div style={{ fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 600 }}>Nome</div>
+                  <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 4, fontWeight: 600 }}>Nome</div>
                   <input
                     type="text"
                     placeholder="Netflix"
@@ -424,7 +423,7 @@ export default function OnboardingPage() {
                   />
                 </div>
                 <div>
-                  <div style={{ fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 600 }}>Valor (R$)</div>
+                  <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 4, fontWeight: 600 }}>Valor (R$)</div>
                   <input
                     type="number"
                     placeholder="55,90"
@@ -434,7 +433,7 @@ export default function OnboardingPage() {
                   />
                 </div>
                 <div>
-                  <div style={{ fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 600 }}>Dia venc.</div>
+                  <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 4, fontWeight: 600 }}>Dia venc.</div>
                   <input
                     type="number"
                     placeholder="1"
@@ -449,7 +448,7 @@ export default function OnboardingPage() {
               {recurrences.length > 1 && (
                 <button
                   onClick={() => setRecurrences(recurrences.filter((_, j) => j !== i))}
-                  style={{ marginTop: 10, background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer', fontSize: 12 }}
+                  style={{ marginTop: 10, background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 12 }}
                 >
                   × Remover
                 </button>
@@ -459,7 +458,7 @@ export default function OnboardingPage() {
 
           <button
             onClick={() => setRecurrences([...recurrences, { name: '', amount: '', due_day: '1' }])}
-            style={{ width: '100%', padding: '10px', border: '1px dashed #3498db', borderRadius: 10, backgroundColor: 'transparent', color: '#3498db', cursor: 'pointer', fontSize: 14, marginBottom: 20 }}
+            style={{ width: '100%', padding: '10px', border: '1px dashed #3498db', borderRadius: 'var(--radius)', backgroundColor: 'transparent', color: 'var(--blue)', cursor: 'pointer', fontSize: 14, marginBottom: 20 }}
           >
             + Adicionar outra recorrência
           </button>
@@ -467,14 +466,14 @@ export default function OnboardingPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <button
               onClick={() => setStep(2)}
-              style={{ padding: '13px', border: '1px solid #ddd', borderRadius: 10, backgroundColor: 'white', cursor: 'pointer', color: '#888', fontSize: 14 }}
+              style={{ padding: '13px', border: '1px solid var(--border)', borderRadius: 'var(--radius)', backgroundColor: 'var(--surface)', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 14 }}
             >
               ← Voltar
             </button>
             <button
               onClick={handleSaveRecurrences}
               disabled={loading}
-              style={{ padding: '13px', border: 'none', borderRadius: 10, backgroundColor: loading ? '#95a5a6' : '#2ecc71', color: 'white', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 16 }}
+              style={{ padding: '13px', border: 'none', borderRadius: 'var(--radius)', backgroundColor: loading ? '#95a5a6' : '#2ecc71', color: 'white', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 16 }}
             >
               {loading ? 'Salvando...' : '🚀 Concluir!'}
             </button>
@@ -482,7 +481,7 @@ export default function OnboardingPage() {
 
           <button
             onClick={() => router.push('/dashboard')}
-            style={{ width: '100%', marginTop: 10, padding: '10px', border: 'none', background: 'none', color: '#aaa', cursor: 'pointer', fontSize: 13 }}
+            style={{ width: '100%', marginTop: 10, padding: '10px', border: 'none', background: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13 }}
           >
             Pular e ir para o dashboard
           </button>

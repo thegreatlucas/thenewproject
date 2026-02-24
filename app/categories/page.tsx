@@ -27,7 +27,7 @@ export default function CategoriesPage() {
   const [formData, setFormData] = useState({
     name: '',
     icon: '📁',
-    color: '#3498db',
+    color: 'var(--blue)',
     parent_id: '',
   });
   const router = useRouter();
@@ -41,10 +41,9 @@ export default function CategoriesPage() {
   async function checkAuth() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push('/login'); return; }
-    const { data: membersArr, error } = await supabase
-      .from('household_members').select('household_id').eq('user_id', user.id).limit(1);
-    const memberData = membersArr?.[0] ?? null;
-    if (!memberData) { router.push('/setup'); return; }
+    const { data: memberData, error } = await supabase
+      .from('household_members').select('household_id').eq('user_id', user.id).single();
+    if (error || !memberData) { router.push('/setup'); return; }
     setHouseholdId(memberData.household_id);
     loadCategories(memberData.household_id);
   }
@@ -75,9 +74,8 @@ export default function CategoriesPage() {
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const { data: members } = await supabase
-      .from('household_members').select('household_id').eq('user_id', user.id).limit(1);
-      const member = members?.[0] ?? null;
+    const { data: member } = await supabase
+      .from('household_members').select('household_id').eq('user_id', user.id).single();
     if (!member) return;
     const hid = member.household_id;
 
@@ -120,7 +118,7 @@ export default function CategoriesPage() {
 
   function resetForm() {
     setEditingId(null);
-    setFormData({ name: '', icon: '📁', color: '#3498db', parent_id: '' });
+    setFormData({ name: '', icon: '📁', color: 'var(--blue)', parent_id: '' });
     setShowForm(false);
   }
 
@@ -152,14 +150,14 @@ export default function CategoriesPage() {
           </div>
           <button
             onClick={() => { if (showForm) resetForm(); else setShowForm(true); }}
-            style={{ padding: '8px 16px', backgroundColor: showForm ? '#e74c3c' : '#2ecc71', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>
+            style={{ padding: '8px 16px', backgroundColor: showForm ? '#e74c3c' : '#2ecc71', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontWeight: 600 }}>
             {showForm ? '✖️ Cancelar' : '➕ Nova'}
           </button>
         </div>
 
         {/* Formulário */}
         {showForm && (
-          <form onSubmit={handleSubmit} style={{ backgroundColor: 'var(--surface2)', border: '1px solid var(--border)', padding: 20, borderRadius: 12, marginBottom: 24 }}>
+          <form onSubmit={handleSubmit} style={{ backgroundColor: 'var(--surface2)', border: '1px solid var(--border)', padding: 20, borderRadius: 'var(--radius)', marginBottom: 24 }}>
             <h3 style={{ marginTop: 0, color: 'var(--text)', marginBottom: 16 }}>
               {editingId ? '✏️ Editar categoria' : '➕ Nova categoria'}
             </h3>
@@ -171,11 +169,11 @@ export default function CategoriesPage() {
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 <button type="button" onClick={() => setFormData(f => ({ ...f, parent_id: '' }))}
-                  style={{ padding: '10px 12px', borderRadius: 8, border: !formData.parent_id ? '2px solid #3498db' : '1px solid var(--border)', backgroundColor: !formData.parent_id ? '#e8f4ff' : 'var(--surface)', cursor: 'pointer', fontSize: 13, fontWeight: !formData.parent_id ? 700 : 400, color: 'var(--text)' }}>
+                  style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: !formData.parent_id ? '2px solid #3498db' : '1px solid var(--border)', backgroundColor: !formData.parent_id ? '#e8f4ff' : 'var(--surface)', cursor: 'pointer', fontSize: 13, fontWeight: !formData.parent_id ? 700 : 400, color: 'var(--text)' }}>
                   🏷️ Categoria principal
                 </button>
                 <button type="button" onClick={() => setFormData(f => ({ ...f, parent_id: parentOptions[0]?.id || '' }))}
-                  style={{ padding: '10px 12px', borderRadius: 8, border: formData.parent_id ? '2px solid #9b59b6' : '1px solid var(--border)', backgroundColor: formData.parent_id ? '#f3e8ff' : 'var(--surface)', cursor: 'pointer', fontSize: 13, fontWeight: formData.parent_id ? 700 : 400, color: 'var(--text)' }}>
+                  style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: formData.parent_id ? '2px solid #9b59b6' : '1px solid var(--border)', backgroundColor: formData.parent_id ? '#f3e8ff' : 'var(--surface)', cursor: 'pointer', fontSize: 13, fontWeight: formData.parent_id ? 700 : 400, color: 'var(--text)' }}>
                   ↳ Subcategoria
                 </button>
               </div>
@@ -186,7 +184,7 @@ export default function CategoriesPage() {
               <div style={{ marginBottom: 14 }}>
                 <label style={{ display: 'block', fontWeight: 600, fontSize: 13, color: 'var(--text2)', marginBottom: 6 }}>Categoria pai</label>
                 <select value={formData.parent_id} onChange={e => setFormData(f => ({ ...f, parent_id: e.target.value }))}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 14 }}>
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: 14 }}>
                   {parentOptions.length === 0
                     ? <option value="">Crie uma categoria principal primeiro</option>
                     : parentOptions.map(p => <option key={p.id} value={p.id}>{p.icon} {p.name}</option>)
@@ -200,7 +198,7 @@ export default function CategoriesPage() {
               <label style={{ display: 'block', fontWeight: 600, fontSize: 13, color: 'var(--text2)', marginBottom: 6 }}>Nome</label>
               <input type="text" value={formData.name} onChange={e => setFormData(f => ({ ...f, name: e.target.value }))}
                 placeholder={formData.parent_id ? 'Ex: Supermercado, iFood...' : 'Ex: Alimentação, Transporte...'}
-                required style={{ width: '100%', padding: '9px 12px', fontSize: 15, borderRadius: 8, border: '1px solid var(--border)' }} />
+                required style={{ width: '100%', padding: '9px 12px', fontSize: 15, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }} />
             </div>
 
             {/* Ícone */}
@@ -209,7 +207,7 @@ export default function CategoriesPage() {
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {iconOptions.map(icon => (
                   <button key={icon} type="button" onClick={() => setFormData(f => ({ ...f, icon }))}
-                    style={{ fontSize: 22, padding: 7, border: formData.icon === icon ? '2px solid #3498db' : '1px solid var(--border)', borderRadius: 8, backgroundColor: formData.icon === icon ? '#e3f2fd' : 'var(--surface)', cursor: 'pointer' }}>
+                    style={{ fontSize: 22, padding: 7, border: formData.icon === icon ? '2px solid #3498db' : '1px solid var(--border)', borderRadius: 'var(--radius-sm)', backgroundColor: formData.icon === icon ? '#e3f2fd' : 'var(--surface)', cursor: 'pointer' }}>
                     {icon}
                   </button>
                 ))}
@@ -222,14 +220,14 @@ export default function CategoriesPage() {
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {colorOptions.map(color => (
                   <button key={color} type="button" onClick={() => setFormData(f => ({ ...f, color }))}
-                    style={{ width: 36, height: 36, backgroundColor: color, border: formData.color === color ? '3px solid var(--text)' : '2px solid transparent', borderRadius: 8, cursor: 'pointer' }} />
+                    style={{ width: 36, height: 36, backgroundColor: color, border: formData.color === color ? '3px solid var(--text)' : '2px solid transparent', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }} />
                 ))}
               </div>
             </div>
 
             {/* Preview */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', backgroundColor: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)', marginBottom: 16 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: formData.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', backgroundColor: 'var(--surface)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', marginBottom: 16 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 'var(--radius-sm)', backgroundColor: formData.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
                 {formData.icon}
               </div>
               <div>
@@ -246,11 +244,11 @@ export default function CategoriesPage() {
 
             <div style={{ display: 'flex', gap: 8 }}>
               <button type="submit"
-                style={{ flex: 1, padding: '11px', backgroundColor: '#2ecc71', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 15 }}>
+                style={{ flex: 1, padding: '11px', backgroundColor: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontWeight: 700, fontSize: 15 }}>
                 {editingId ? '💾 Salvar' : '➕ Criar'}
               </button>
               <button type="button" onClick={resetForm}
-                style={{ flex: 1, padding: '11px', backgroundColor: 'var(--border)', color: 'var(--text2)', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+                style={{ flex: 1, padding: '11px', backgroundColor: 'var(--border)', color: 'var(--text2)', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>
                 Cancelar
               </button>
             </div>
@@ -272,8 +270,8 @@ export default function CategoriesPage() {
               return (
                 <div key={cat.id}>
                   {/* Categoria principal */}
-                  <div style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: 'var(--shadow)' }}>
-                    <div style={{ width: 46, height: 46, borderRadius: 10, backgroundColor: cat.color || '#3498db', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>
+                  <div style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: 'var(--shadow)' }}>
+                    <div style={{ width: 46, height: 46, borderRadius: 'var(--radius)', backgroundColor: cat.color || '#3498db', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>
                       {cat.icon || '📁'}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -287,21 +285,21 @@ export default function CategoriesPage() {
                     <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                       {hasChildren && (
                         <button onClick={() => toggleExpand(cat.id)}
-                          style={{ padding: '6px 10px', backgroundColor: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', fontSize: 14, color: 'var(--text3)' }}>
+                          style={{ padding: '6px 10px', backgroundColor: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: 14, color: 'var(--text3)' }}>
                           {isExpanded ? '▲' : '▼'}
                         </button>
                       )}
                       <button onClick={() => { setFormData(f => ({ ...f, parent_id: cat.id })); setShowForm(true); }}
-                        style={{ padding: '6px 10px', backgroundColor: '#9b59b6', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13 }}
+                        style={{ padding: '6px 10px', backgroundColor: 'var(--purple)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: 13 }}
                         title="Adicionar subcategoria">
                         +↳
                       </button>
                       <button onClick={() => startEdit(cat)}
-                        style={{ padding: '6px 10px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
+                        style={{ padding: '6px 10px', backgroundColor: 'var(--blue)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>
                         ✏️
                       </button>
                       <button onClick={() => handleDelete(cat.id, cat.name, hasChildren)}
-                        style={{ padding: '6px 10px', backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}>
+                        style={{ padding: '6px 10px', backgroundColor: 'var(--red)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>
                         🗑️
                       </button>
                     </div>
@@ -311,9 +309,9 @@ export default function CategoriesPage() {
                   {hasChildren && isExpanded && (
                     <div style={{ marginLeft: 24, marginTop: 6, display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {cat.subcategories!.map(sub => (
-                        <div key={sub.id} style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border2)', borderRadius: 10, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, borderLeft: `3px solid ${cat.color || '#3498db'}` }}>
+                        <div key={sub.id} style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border2)', borderRadius: 'var(--radius)', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, borderLeft: `3px solid ${cat.color || '#3498db'}` }}>
                           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginRight: -4 }}>↳</div>
-                          <div style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: sub.color || cat.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0, opacity: 0.9 }}>
+                          <div style={{ width: 34, height: 34, borderRadius: 'var(--radius-sm)', backgroundColor: sub.color || cat.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0, opacity: 0.9 }}>
                             {sub.icon || cat.icon}
                           </div>
                           <div style={{ flex: 1 }}>
@@ -321,11 +319,11 @@ export default function CategoriesPage() {
                           </div>
                           <div style={{ display: 'flex', gap: 6 }}>
                             <button onClick={() => startEdit(sub)}
-                              style={{ padding: '4px 8px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12 }}>
+                              style={{ padding: '4px 8px', backgroundColor: 'var(--blue)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: 12 }}>
                               ✏️
                             </button>
                             <button onClick={() => handleDelete(sub.id, sub.name, false)}
-                              style={{ padding: '4px 8px', backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12 }}>
+                              style={{ padding: '4px 8px', backgroundColor: 'var(--red)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: 12 }}>
                               🗑️
                             </button>
                           </div>

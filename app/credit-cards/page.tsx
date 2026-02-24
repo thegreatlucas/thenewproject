@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { formatCurrency } from '@/lib/format';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -28,12 +29,11 @@ export default function CreditCardsPage() {
       if (!user) { router.push('/login'); return; }
       setUserId(user.id);
 
-      const { data: members } = await supabase
+      const { data: member } = await supabase
         .from('household_members')
         .select('household_id')
         .eq('user_id', user.id)
-        .limit(1);
-      const member = members?.[0] ?? null;
+        .single();
 
       if (!member) { router.push('/setup'); return; }
       setHouseholdId(member.household_id);
@@ -68,12 +68,11 @@ export default function CreditCardsPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data: members2 } = await supabase
+    const { data: member } = await supabase
       .from('household_members')
       .select('household_id')
       .eq('user_id', user.id)
-      .limit(1);
-    const member = members2?.[0] ?? null;
+      .single();
 
     if (!member) return;
 
@@ -149,14 +148,14 @@ export default function CreditCardsPage() {
 
   function getStatusLabel(status: string) {
     switch (status) {
-      case 'open': return { label: '🟡 Aberta', color: '#f39c12' };
-      case 'closed': return { label: '🔴 Fechada', color: '#e74c3c' };
-      case 'paid': return { label: '🟢 Paga', color: '#2ecc71' };
+      case 'open': return { label: '🟡 Aberta', color: 'var(--orange)' };
+      case 'closed': return { label: '🔴 Fechada', color: 'var(--red)' };
+      case 'paid': return { label: '🟢 Paga', color: 'var(--green)' };
       default: return { label: status, color: '#95a5a6' };
     }
   }
 
-  if (loading) return <main style={{ padding: 16 }}>Carregando...</main>;
+  if (loading) return <main style={{ padding: 16, color: 'var(--text-muted)' }}>Carregando...</main>;
 
   // Exemplo ao vivo de qual fatura cairia hoje
   const today = new Date();
@@ -172,7 +171,7 @@ export default function CreditCardsPage() {
           style={{
             padding: '8px 16px', fontSize: 16,
             backgroundColor: showForm ? '#e74c3c' : '#2ecc71',
-            color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer'
+            color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer'
           }}
         >
           {showForm ? '✖️ Cancelar' : '➕ Novo cartão'}
@@ -181,7 +180,7 @@ export default function CreditCardsPage() {
 
       {/* Formulário */}
       {showForm && (
-        <form onSubmit={handleSubmit} style={{ backgroundColor: '#f5f5f5', padding: 20, borderRadius: 8, marginBottom: 24 }}>
+        <form onSubmit={handleSubmit} style={{ backgroundColor: 'var(--bg2)', padding: 20, borderRadius: 'var(--radius-sm)', marginBottom: 24 }}>
           <h3 style={{ marginTop: 0 }}>{editingId ? 'Editar Cartão' : 'Novo Cartão'}</h3>
 
           <div style={{ marginBottom: 16 }}>
@@ -191,7 +190,7 @@ export default function CreditCardsPage() {
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Ex: Nubank, Bradesco..."
-              style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 4, border: '1px solid #ccc' }}
+              style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}
               required
             />
           </div>
@@ -205,10 +204,10 @@ export default function CreditCardsPage() {
                 onChange={(e) => setFormData({ ...formData, closing_day: e.target.value })}
                 placeholder="Ex: 3"
                 min={1} max={31}
-                style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 4, border: '1px solid #ccc' }}
+                style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}
                 required
               />
-              <small style={{ color: '#666' }}>Compras até o dia anterior caem no mês atual</small>
+              <small style={{ color: 'var(--text3)' }}>Compras até o dia anterior caem no mês atual</small>
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Dia de vencimento:</label>
@@ -218,7 +217,7 @@ export default function CreditCardsPage() {
                 onChange={(e) => setFormData({ ...formData, due_day: e.target.value })}
                 placeholder="Ex: 10"
                 min={1} max={31}
-                style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 4, border: '1px solid #ccc' }}
+                style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}
                 required
               />
             </div>
@@ -226,7 +225,7 @@ export default function CreditCardsPage() {
 
           {/* Preview da lógica de fatura */}
           {formData.closing_day && (
-            <div style={{ backgroundColor: '#e3f2fd', padding: 12, borderRadius: 8, marginBottom: 16, fontSize: 14 }}>
+            <div style={{ backgroundColor: 'rgba(108,99,255,0.08)', padding: 12, borderRadius: 'var(--radius-sm)', marginBottom: 16, fontSize: 14 }}>
               <strong>📅 Exemplo com hoje ({today.toLocaleDateString('pt-BR')}):</strong><br />
               Uma compra feita hoje cairia na fatura de{' '}
               <strong>{getInvoiceMonth(today, parseInt(formData.closing_day))}</strong>
@@ -234,10 +233,10 @@ export default function CreditCardsPage() {
           )}
 
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="submit" style={{ padding: '10px 20px', fontSize: 16, backgroundColor: '#2ecc71', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+            <button type="submit" style={{ padding: '10px 20px', fontSize: 16, backgroundColor: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>
               {editingId ? '💾 Salvar' : '➕ Criar'}
             </button>
-            <button type="button" onClick={cancelEdit} style={{ padding: '10px 20px', fontSize: 16, backgroundColor: '#95a5a6', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+            <button type="button" onClick={cancelEdit} style={{ padding: '10px 20px', fontSize: 16, backgroundColor: 'var(--text-muted)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>
               Cancelar
             </button>
           </div>
@@ -247,7 +246,7 @@ export default function CreditCardsPage() {
       {/* Lista de cartões */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, marginBottom: 32 }}>
         {cards.length === 0 ? (
-          <p style={{ color: '#666', gridColumn: '1/-1' }}>Nenhum cartão cadastrado ainda.</p>
+          <p style={{ color: 'var(--text3)', gridColumn: '1/-1' }}>Nenhum cartão cadastrado ainda.</p>
         ) : (
           cards.map((card) => (
             <div
@@ -256,7 +255,7 @@ export default function CreditCardsPage() {
               style={{
                 border: selectedCard === card.id ? '2px solid #3498db' : '1px solid #ddd',
                 padding: 20,
-                borderRadius: 12,
+                borderRadius: 'var(--radius)',
                 backgroundColor: selectedCard === card.id ? '#e3f2fd' : 'white',
                 cursor: 'pointer',
                 position: 'relative'
@@ -264,21 +263,21 @@ export default function CreditCardsPage() {
             >
               <div style={{ fontSize: 32, marginBottom: 8 }}>💳</div>
               <div style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 4 }}>{card.name}</div>
-              <div style={{ fontSize: 13, color: '#666' }}>Fecha dia <strong>{card.closing_day}</strong> · Vence dia <strong>{card.due_day}</strong></div>
-              <div style={{ fontSize: 12, color: '#3498db', marginTop: 4 }}>
+              <div style={{ fontSize: 13, color: 'var(--text3)' }}>Fecha dia <strong>{card.closing_day}</strong> · Vence dia <strong>{card.due_day}</strong></div>
+              <div style={{ fontSize: 12, color: 'var(--blue)', marginTop: 4 }}>
                 Compra hoje → fatura de {getInvoiceMonth(today, card.closing_day)}
               </div>
 
               <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                 <button
                   onClick={(e) => { e.stopPropagation(); startEdit(card); }}
-                  style={{ padding: '6px 10px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
+                  style={{ padding: '6px 10px', backgroundColor: 'var(--blue)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: 12 }}
                 >
                   ✏️ Editar
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); handleDelete(card.id, card.name); }}
-                  style={{ padding: '6px 10px', backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
+                  style={{ padding: '6px 10px', backgroundColor: 'var(--red)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: 12 }}
                 >
                   🗑️
                 </button>
@@ -293,7 +292,7 @@ export default function CreditCardsPage() {
         <div>
           <h2>📄 Faturas — {cards.find(c => c.id === selectedCard)?.name}</h2>
           {invoices.length === 0 ? (
-            <p style={{ color: '#666' }}>Nenhuma fatura gerada ainda. As faturas aparecem automaticamente conforme você lança gastos no cartão.</p>
+            <p style={{ color: 'var(--text3)' }}>Nenhuma fatura gerada ainda. As faturas aparecem automaticamente conforme você lança gastos no cartão.</p>
           ) : (
             <div>
               {invoices.map((inv) => {
@@ -302,11 +301,11 @@ export default function CreditCardsPage() {
                   <div
                     key={inv.id}
                     style={{
-                      border: '1px solid #ddd',
+                      border: '1px solid var(--border)',
                       padding: 16,
                       marginBottom: 12,
-                      borderRadius: 8,
-                      backgroundColor: 'white',
+                      borderRadius: 'var(--radius-sm)',
+                      backgroundColor: 'var(--surface)',
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center'
@@ -316,18 +315,18 @@ export default function CreditCardsPage() {
                       <div style={{ fontWeight: 'bold', fontSize: 16 }}>
                         {new Date(inv.month + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
                       </div>
-                      <div style={{ fontSize: 13, color: '#666', marginTop: 2 }}>
+                      <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 2 }}>
                         <span style={{ color: status.color, fontWeight: 'bold' }}>{status.label}</span>
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 22, fontWeight: 'bold', color: '#e74c3c' }}>
+                      <div style={{ fontSize: 22, fontWeight: 'bold', color: 'var(--red)' }}>
                         R$ {Number(inv.total).toFixed(2)}
                       </div>
                       {inv.status !== 'paid' && (
                         <button
                           onClick={() => markInvoicePaid(inv.id)}
-                          style={{ marginTop: 8, padding: '6px 12px', backgroundColor: '#2ecc71', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}
+                          style={{ marginTop: 8, padding: '6px 12px', backgroundColor: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: 12 }}
                         >
                           ✅ Marcar como paga
                         </button>

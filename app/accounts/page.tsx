@@ -1,7 +1,7 @@
 'use client';
 
-import { formatCurrency } from '@/lib/format';
 import { useState, useEffect } from 'react';
+import { formatCurrency } from '@/lib/format';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -27,7 +27,7 @@ export default function AccountsPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ name: '', type: 'checking', initial_balance: '0' });
+  const [formData, setFormData] = useState({ name: '', type: 'checking' });
   const router = useRouter();
 
   useEffect(() => {
@@ -35,13 +35,12 @@ export default function AccountsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/login'); return; }
 
-      const { data: memberRows } = await supabase
+      const { data: member } = await supabase
         .from('household_members')
         .select('household_id')
         .eq('user_id', user.id)
-        .limit(1);
+        .single();
 
-      const member = memberRows?.[0] ?? null;
       if (!member) { router.push('/setup'); return; }
       setHouseholdId(member.household_id);
       await loadAccounts(member.household_id);
@@ -81,7 +80,7 @@ export default function AccountsPage() {
 
         const txTotal = (txData || []).reduce((s, t) => s + Number(t.amount), 0);
 
-        balanceMap[acc.id] = (acc.initial_balance || 0) + incomeTotal - txTotal;
+        balanceMap[acc.id] = incomeTotal - txTotal;
       }
 
       setBalances(balanceMap);
@@ -94,18 +93,17 @@ export default function AccountsPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data: memberRows2 } = await supabase
+    const { data: member } = await supabase
       .from('household_members')
       .select('household_id')
       .eq('user_id', user.id)
-      .limit(1);
+      .single();
 
-    const member = memberRows2?.[0] ?? null;
     if (!member) return;
 
     const payload = {
       name: formData.name,
-      initial_balance: parseFloat(formData.initial_balance) || 0,
+      type: formData.type,
       household_id: member.household_id,
       owner_id: user.id,
     };
@@ -131,13 +129,13 @@ export default function AccountsPage() {
 
   function startEdit(account: any) {
     setEditingId(account.id);
-    setFormData({ name: account.name, type: account.type || 'checking', initial_balance: String(account.initial_balance || 0) });
+    setFormData({ name: account.name, type: account.type || 'checking' });
     setShowForm(true);
   }
 
   function resetForm() {
     setEditingId(null);
-    setFormData({ name: '', type: 'checking', initial_balance: '0' });
+    setFormData({ name: '', type: 'checking' });
     setShowForm(false);
   }
 
@@ -157,7 +155,7 @@ export default function AccountsPage() {
   const totalCash = cashAccounts.reduce((s, a) => s + (balances[a.id] || 0), 0);
   const totalVoucher = voucherAccounts.reduce((s, a) => s + (balances[a.id] || 0), 0);
 
-  if (loading) return <main style={{ padding: 16 }}>Carregando...</main>;
+  if (loading) return <main style={{ padding: 16, color: 'var(--text-muted)' }}>Carregando...</main>;
 
   return (
     <>
@@ -167,7 +165,7 @@ export default function AccountsPage() {
         <h1>🏦 Contas</h1>
         <button
           onClick={() => { resetForm(); setShowForm(!showForm); }}
-          style={{ padding: '8px 16px', fontSize: 16, backgroundColor: showForm ? '#e74c3c' : '#2ecc71', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer' }}
+          style={{ padding: '8px 16px', fontSize: 16, backgroundColor: showForm ? '#e74c3c' : '#2ecc71', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}
         >
           {showForm ? '✖️ Cancelar' : '➕ Nova conta'}
         </button>
@@ -175,12 +173,12 @@ export default function AccountsPage() {
 
       {/* Resumo de saldos */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 24 }}>
-        <div style={{ background: 'linear-gradient(135deg, #2ecc71, #27ae60)', padding: 16, borderRadius: 12, color: 'white' }}>
+        <div style={{ background: 'linear-gradient(135deg, #2ecc71, #27ae60)', padding: 16, borderRadius: 'var(--radius)', color: 'white' }}>
           <div style={{ fontSize: 12, opacity: 0.9 }}>Saldo total (dinheiro)</div>
           <div style={{ fontSize: 22, fontWeight: 'bold' }}>{formatCurrency(totalCash)}</div>
         </div>
         {totalVoucher > 0 && (
-          <div style={{ background: 'linear-gradient(135deg, #f39c12, #e67e22)', padding: 16, borderRadius: 12, color: 'white' }}>
+          <div style={{ background: 'linear-gradient(135deg, #f39c12, #e67e22)', padding: 16, borderRadius: 'var(--radius)', color: 'white' }}>
             <div style={{ fontSize: 12, opacity: 0.9 }}>Saldo VR/VA</div>
             <div style={{ fontSize: 22, fontWeight: 'bold' }}>{formatCurrency(totalVoucher)}</div>
             <div style={{ fontSize: 11, opacity: 0.8 }}>Uso restrito alimentação</div>
@@ -190,7 +188,7 @@ export default function AccountsPage() {
 
       {/* Formulário */}
       {showForm && (
-        <form onSubmit={handleSubmit} style={{ backgroundColor: 'var(--bg2)', padding: 20, borderRadius: 8, marginBottom: 24 }}>
+        <form onSubmit={handleSubmit} style={{ backgroundColor: 'var(--bg2)', padding: 20, borderRadius: 'var(--radius-sm)', marginBottom: 24 }}>
           <h3 style={{ marginTop: 0 }}>{editingId ? 'Editar Conta' : 'Nova Conta'}</h3>
 
           <div style={{ marginBottom: 16 }}>
@@ -199,7 +197,7 @@ export default function AccountsPage() {
               type="text" value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Ex: Nubank, VR Ticket, Bradesco..."
-              style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 4, border: '1px solid var(--border)' }}
+              style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}
               required
             />
           </div>
@@ -213,7 +211,7 @@ export default function AccountsPage() {
                   style={{
                     padding: 10,
                     border: formData.type === t.value ? '2px solid #3498db' : '1px solid #ddd',
-                    borderRadius: 8,
+                    borderRadius: 'var(--radius-sm)',
                     backgroundColor: formData.type === t.value
                       ? VOUCHER_TYPES.includes(t.value) ? '#fff3cd' : '#e3f2fd'
                       : 'white',
@@ -227,28 +225,17 @@ export default function AccountsPage() {
               ))}
             </div>
             {VOUCHER_TYPES.includes(formData.type) && (
-              <div style={{ marginTop: 8, backgroundColor: '#fff3cd', padding: 10, borderRadius: 6, fontSize: 13 }}>
+              <div style={{ marginTop: 8, backgroundColor: '#fff3cd', padding: 10, borderRadius: 'var(--radius-sm)', fontSize: 13 }}>
                 🍽️ Contas de vale têm saldo separado e só podem ser usadas para gastos de alimentação.
               </div>
-      )}
-      </div>
-
-      <div style={{ marginBottom: 16 }}>
-        <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Saldo atual (R$):</label>
-            <input
-              type="number" value={formData.initial_balance}
-              onChange={(e) => setFormData({ ...formData, initial_balance: e.target.value })}
-              placeholder="0.00" step="0.01"
-              style={{ width: '100%', padding: 8, fontSize: 16, borderRadius: 4, border: '1px solid var(--border)' }}
-            />
-            <small style={{ color: 'var(--text-muted)' }}>Saldo atual da conta. Novos lançamentos serão somados/subtraídos automaticamente.</small>
+            )}
           </div>
 
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="submit" style={{ padding: '10px 20px', fontSize: 16, backgroundColor: '#2ecc71', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+            <button type="submit" style={{ padding: '10px 20px', fontSize: 16, backgroundColor: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>
               {editingId ? '💾 Salvar' : '➕ Criar'}
             </button>
-            <button type="button" onClick={resetForm} style={{ padding: '10px 20px', fontSize: 16, backgroundColor: '#95a5a6', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+            <button type="button" onClick={resetForm} style={{ padding: '10px 20px', fontSize: 16, backgroundColor: 'var(--text-muted)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>
               Cancelar
             </button>
           </div>
@@ -262,7 +249,7 @@ export default function AccountsPage() {
           {cashAccounts.map((acc) => {
             const balance = balances[acc.id] ?? 0;
             return (
-              <div key={acc.id} style={{ border: '1px solid var(--border)', padding: 16, marginBottom: 10, borderRadius: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--surface)' }}>
+              <div key={acc.id} style={{ border: '1px solid var(--border)', padding: 16, marginBottom: 10, borderRadius: 'var(--radius)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--surface)' }}>
                 <div>
                   <div style={{ fontWeight: 'bold', fontSize: 17 }}>{acc.name}</div>
                   <div style={{ fontSize: 13, color: 'var(--text3)' }}>{getTypeLabel(acc.type)}</div>
@@ -270,14 +257,14 @@ export default function AccountsPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontWeight: 'bold', fontSize: 18, color: getBalanceColor(balance, acc.type) }}>
-                      R$ {formatCurrency(balance)}
+                      {formatCurrency(balance)}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>saldo calculado</div>
                   </div>
                   <button onClick={() => startEdit(acc)}
-                    style={{ padding: '8px 12px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}>✏️</button>
+                    style={{ padding: '8px 12px', backgroundColor: 'var(--blue)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>✏️</button>
                   <button onClick={() => handleDelete(acc.id, acc.name)}
-                    style={{ padding: '8px 12px', backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}>🗑️</button>
+                    style={{ padding: '8px 12px', backgroundColor: 'var(--red)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>🗑️</button>
                 </div>
               </div>
             );
@@ -292,22 +279,22 @@ export default function AccountsPage() {
           {voucherAccounts.map((acc) => {
             const balance = balances[acc.id] ?? 0;
             return (
-              <div key={acc.id} style={{ border: '1px solid #f39c12', padding: 16, marginBottom: 10, borderRadius: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg2)' }}>
+              <div key={acc.id} style={{ border: '1px solid #f39c12', padding: 16, marginBottom: 10, borderRadius: 'var(--radius)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fffbf0' }}>
                 <div>
                   <div style={{ fontWeight: 'bold', fontSize: 17 }}>{acc.name}</div>
-                  <div style={{ fontSize: 13, color: '#e67e22' }}>{getTypeLabel(acc.type)} · Uso restrito alimentação</div>
+                  <div style={{ fontSize: 13, color: 'var(--orange)' }}>{getTypeLabel(acc.type)} · Uso restrito alimentação</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontWeight: 'bold', fontSize: 18, color: balance < 0 ? '#e74c3c' : '#f39c12' }}>
-                      R$ {formatCurrency(balance)}
+                      {formatCurrency(balance)}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>saldo calculado</div>
                   </div>
                   <button onClick={() => startEdit(acc)}
-                    style={{ padding: '8px 12px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}>✏️</button>
+                    style={{ padding: '8px 12px', backgroundColor: 'var(--blue)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>✏️</button>
                   <button onClick={() => handleDelete(acc.id, acc.name)}
-                    style={{ padding: '8px 12px', backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer' }}>🗑️</button>
+                    style={{ padding: '8px 12px', backgroundColor: 'var(--red)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}>🗑️</button>
                 </div>
               </div>
             );
