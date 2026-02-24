@@ -130,7 +130,7 @@ export default function AccountsPage() {
 
   function startEdit(account: any) {
     setEditingId(account.id);
-    setFormData({ name: account.name, type: account.type || 'checking' });
+    setFormData({ name: account.name, type: account.type || 'checking', initial_balance: String(account.initial_balance || 0) });
     setShowForm(true);
   }
 
