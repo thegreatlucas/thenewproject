@@ -147,7 +147,7 @@ export default function SimulatorPage() {
       const monthInters = intermediaries.filter(inter => inter.due_date?.slice(0, 7) === monthKey);
       monthInters.forEach(inter => {
         extras.push({ label: `🏢 Intermediária — ${inter.financings?.name || 'Financiamento'}`, amount: Number(inter.amount) });
-        warnings.push(`Intermediária de {ormatCurrency(Number(inter.amount))} vence em ${new Date(inter.due_date + 'T12:00:00').toLocaleDateString('pt-BR')}`);
+        warnings.push(`Intermediária de ${formatCurrency(Number(inter.amount))} vence em ${new Date(inter.due_date + 'T12:00:00').toLocaleDateString('pt-BR')}`);
       });
 
       // Faturas abertas do mês
@@ -160,7 +160,7 @@ export default function SimulatorPage() {
       const extrasTotal = extras.reduce((s, e) => s + e.amount, 0);
       const balance = activeIncome - fixedExpenses - simulatedExpense - extrasTotal;
 
-      if (balance < 0) warnings.push(`Saldo negativo de {ormatCurrency(Math.abs(balance))}`);
+      if (balance < 0) warnings.push(`Saldo negativo de ${formatCurrency(Math.abs(balance))}`);
       else if (balance < activeIncome * 0.1) warnings.push(`Saldo muito apertado (menos de 10% da renda)`);
 
       months.push({
@@ -193,7 +193,7 @@ export default function SimulatorPage() {
     } else {
       setVerdict('ok');
       const minBalance = Math.min(...months.map(m => m.balance));
-      setVerdictMessage(`✅ Compra viável! Seu saldo mínimo nos próximos ${totalMonths} meses será de {ormatCurrency(minBalance)}.`);
+      setVerdictMessage(`✅ Compra viável! Seu saldo mínimo nos próximos ${totalMonths} meses será de ${formatCurrency(minBalance)}.`);
     }
 
     setSimulating(false);
@@ -374,10 +374,10 @@ export default function SimulatorPage() {
                 <div>
                   <div style={{ fontWeight: 'bold', fontSize: 16, textTransform: 'capitalize' }}>{month.month}</div>
                   <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
-                    Renda: R$ {month.formatCurrency(income)}
-                    {' · '}Fixos: R$ {month.formatCurrency(fixedExpenses)}
-                    {month.simulatedExpense > 0 && ` · Compra: {ormatCurrency(month.simulatedExpense)}`}
-                    {month.extras.length > 0 && ` · Extras: {ormatCurrency(month.extras.reduce((s, e) => s + e.amount, 0))}`}
+                    Renda: {formatCurrency(month.income)}
+                    {' · '}Fixos: {formatCurrency(month.fixedExpenses)}
+                    {month.simulatedExpense > 0 && ` · Compra: ${formatCurrency(month.simulatedExpense)}`}
+                    {month.extras.length > 0 && ` · Extras: ${formatCurrency(month.extras.reduce((s, e) => s + e.amount, 0))}`}
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
@@ -394,7 +394,7 @@ export default function SimulatorPage() {
                 <div style={{ padding: '8px 16px 12px', borderTop: '1px solid var(--border2)', backgroundColor: month.isNegative ? '#fff5f5' : '#fafafa' }}>
                   {month.extras.map((extra, j) => (
                     <div key={j} style={{ fontSize: 13, color: 'var(--orange)', marginBottom: 2 }}>
-                      ⚡ {extra.label}: R$ {extra.formatCurrency(amount)}
+                      ⚡ {extra.label}: {formatCurrency(extra.amount)}
                     </div>
                   ))}
                 </div>
