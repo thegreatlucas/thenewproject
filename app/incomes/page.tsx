@@ -53,13 +53,13 @@ export default function IncomesPage() {
       if (!user) { router.push('/login'); return; }
       setUserId(user.id);
 
-      const { data: members } = await supabase
+      const { data: memberRows } = await supabase
         .from('household_members')
         .select('household_id')
         .eq('user_id', user.id)
         .limit(1);
-      const member = members?.[0] ?? null;
 
+      const member = memberRows?.[0] ?? null;
       if (!member) { router.push('/setup'); return; }
       setHouseholdId(member.household_id);
 
@@ -77,7 +77,6 @@ export default function IncomesPage() {
       .from('incomes')
       .select('*, accounts(name, type)')
       .eq('household_id', hid)
-      .eq('user_id', uid)
       .order('month', { ascending: false });
 
     setIncomes(data || []);
@@ -109,13 +108,13 @@ export default function IncomesPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data: members2 } = await supabase
+    const { data: memberRows2 } = await supabase
       .from('household_members')
       .select('household_id')
       .eq('user_id', user.id)
       .limit(1);
-    const member = members2?.[0] ?? null;
 
+    const member = memberRows2?.[0] ?? null;
     if (!member) return;
 
     if (VOUCHER_TYPES.includes(formData.type) && !formData.account_id) {

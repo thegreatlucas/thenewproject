@@ -50,11 +50,15 @@ export default function CashflowPage() {
     const to   = new Date(y, m + 1, 0, 23, 59, 59).toISOString();
 
     // Busca transações e receitas em paralelo
+    // transactions usa created_at; incomes usa a coluna 'month' (date)
+    const fromMonth = new Date(y, m, 1).toISOString().split('T')[0];      // ex: 2026-02-01
+    const toMonth   = new Date(y, m + 1, 0).toISOString().split('T')[0];  // ex: 2026-02-28
+
     const [{ data: txs }, { data: incomes }] = await Promise.all([
       supabase.from('transactions').select('amount, description, created_at')
         .eq('household_id', hid).gte('created_at', from).lte('created_at', to),
-      supabase.from('incomes').select('amount, description, created_at')
-        .eq('household_id', hid).gte('created_at', from).lte('created_at', to),
+      supabase.from('incomes').select('amount, description, month')
+        .eq('household_id', hid).gte('month', fromMonth).lte('month', toMonth),
     ]);
 
     const map: Record<string, DayData> = {};
@@ -75,7 +79,7 @@ export default function CashflowPage() {
     }
 
     for (const i of incomes || []) {
-      const d = i.created_at.slice(0, 10);
+      const d = (i.month || i.created_at || '').slice(0, 10);
       const day = ensure(d);
       day.income += Number(i.amount);
       day.items.push({ description: i.description || 'Receita', amount: Number(i.amount), type: 'income' });
