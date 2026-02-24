@@ -1,152 +1,377 @@
 'use client';
-// app/components/Header/index.tsx — Com dark mode toggle + seletor de grupo
 
-import Link from 'next/link';
 import { useState } from 'react';
-import ThemeToggle from '@/app/components/ThemeToggle';
-import { useFinanceGroup } from '@/lib/financeGroupContext';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface HeaderProps {
-  title: string;
-  backHref?: string;
-  action?: { label: string; href: string };
+  title?: string;
+  showHousehold?: boolean;
+  household?: any;
+  onHouseholdChange?: (householdId: string) => void;
 }
 
-const GROUP_ICONS: Record<string, string> = {
-  personal: '👤',
-  couple:   '💑',
-  family:   '👨‍👩‍👧‍👦',
-};
+export default function Header({
+  title = 'Finanças',
+  showHousehold = true,
+  household,
+  onHouseholdChange,
+}: HeaderProps) {
+  const router = useRouter();
+  const [showMenu, setShowMenu] = useState(false);
+  const [showThemeMenu, setShowThemeMenu] = useState(false);
+  const isDark = typeof window !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'dark';
 
-export default function Header({ title, backHref, action }: HeaderProps) {
-  const { groups, activeGroup, activeGroupId, setActiveGroupId } = useFinanceGroup();
-  const [open, setOpen] = useState(false);
-
-  const hasMultiple = groups.length > 1;
+  const toggleTheme = () => {
+    const newTheme = isDark ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+  };
 
   return (
-    <header style={{
-      position: 'sticky', top: 0, zIndex: 50,
-      backgroundColor: 'var(--surface)',
-      borderBottom: '1px solid var(--border)',
-      padding: '0 16px',
-      display: 'flex', alignItems: 'center',
-      justifyContent: 'space-between',
-      minHeight: 52,
-      gap: 8,
-    }}>
-      {/* Esquerda: back + title */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-        {backHref && (
-          <Link href={backHref} style={{ textDecoration: 'none', color: 'var(--text3)', fontSize: 20, lineHeight: 1, flexShrink: 0 }}>
-            ←
-          </Link>
-        )}
-        <span style={{ fontWeight: 700, fontSize: 17, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {title}
-        </span>
-      </div>
+    <header
+      style={{
+        backgroundColor: 'var(--header-bg)',
+        borderBottom: '1px solid var(--border)',
+        padding: 0,
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+        backdropFilter: 'blur(10px)',
+      }}
+    >
+      {/* Mobile Header (até 768px) */}
+      <div
+        style={{
+          display: 'none',
+          '@media (max-width: 768px)': {
+            display: 'flex',
+          },
+        }}
+        className="mobile-header"
+      >
+        <style>{`
+          @media (max-width: 768px) {
+            .mobile-header {
+              display: flex !important;
+              flex-direction: column;
+              gap: 12px;
+              padding: 12px;
+            }
 
-      {/* Direita: seletor de grupo + action + theme toggle */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, position: 'relative' }}>
+            .mobile-header-top {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 8px;
+            }
 
-        {/* Seletor de grupo — só aparece se tiver mais de 1 */}
-        {hasMultiple && activeGroup && (
-          <div style={{ position: 'relative' }}>
+            .mobile-header-title {
+              font-size: 18px;
+              font-weight: 600;
+              color: var(--text1);
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              flex: 1;
+            }
+
+            .mobile-header-buttons {
+              display: flex;
+              gap: 6px;
+              align-items: center;
+            }
+
+            .mobile-icon-btn {
+              width: 40px;
+              height: 40px;
+              border: none;
+              background: var(--surface);
+              border-radius: 8px;
+              cursor: pointer;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 18px;
+              transition: all 0.2s;
+            }
+
+            .mobile-icon-btn:active {
+              background: var(--surface2);
+              transform: scale(0.95);
+            }
+
+            .mobile-household {
+              display: flex;
+              gap: 8px;
+              overflow-x: auto;
+              scroll-behavior: smooth;
+              padding: 0 0 8px 0;
+              -webkit-overflow-scrolling: touch;
+            }
+
+            .mobile-household-item {
+              flex-shrink: 0;
+              padding: 8px 12px;
+              background: var(--surface);
+              border-radius: 6px;
+              font-size: 12px;
+              white-space: nowrap;
+              border: 1px solid var(--border);
+              cursor: pointer;
+              transition: all 0.2s;
+            }
+
+            .mobile-household-item.active {
+              background: var(--primary);
+              color: white;
+              border-color: var(--primary);
+            }
+
+            .mobile-dropdown {
+              position: absolute;
+              top: 52px;
+              right: 8px;
+              background: var(--surface);
+              border: 1px solid var(--border);
+              border-radius: 8px;
+              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+              z-index: 1000;
+              min-width: 150px;
+            }
+
+            .mobile-dropdown-item {
+              padding: 12px 16px;
+              cursor: pointer;
+              font-size: 14px;
+              color: var(--text1);
+              border-bottom: 1px solid var(--border);
+              transition: background 0.2s;
+            }
+
+            .mobile-dropdown-item:last-child {
+              border-bottom: none;
+            }
+
+            .mobile-dropdown-item:active {
+              background: var(--surface2);
+            }
+          }
+        `}</style>
+
+        {/* Top Row: Title + Action Buttons */}
+        <div className="mobile-header-top">
+          <h1 className="mobile-header-title">{title}</h1>
+          <div className="mobile-header-buttons">
+            {/* Theme Toggle */}
             <button
-              onClick={() => setOpen((o) => !o)}
+              className="mobile-icon-btn"
+              onClick={toggleTheme}
+              title="Tema"
               style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                padding: '5px 10px',
-                backgroundColor: 'var(--bg3)',
-                border: '1px solid var(--border)',
-                borderRadius: 20, cursor: 'pointer',
-                fontSize: 12, fontWeight: 600,
-                color: 'var(--text2)',
-                maxWidth: 140, overflow: 'hidden',
+                color: isDark ? '#ffd700' : '#3498db',
               }}
             >
-              <span>{GROUP_ICONS[activeGroup.groupType] || '🏠'}</span>
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {activeGroup.name}
-              </span>
-              <span style={{ opacity: 0.6, fontSize: 10 }}>{open ? '▲' : '▼'}</span>
+              {isDark ? '🌙' : '☀️'}
             </button>
 
-            {/* Dropdown */}
-            {open && (
-              <>
-                {/* Overlay para fechar ao clicar fora */}
+            {/* Mais opções */}
+            <button
+              className="mobile-icon-btn"
+              onClick={() => setShowThemeMenu(!showThemeMenu)}
+              title="Menu"
+            >
+              ⋮
+            </button>
+
+            {/* Dropdown Menu */}
+            {showThemeMenu && (
+              <div className="mobile-dropdown">
                 <div
-                  onClick={() => setOpen(false)}
-                  style={{ position: 'fixed', inset: 0, zIndex: 98 }}
-                />
-                <div style={{
-                  position: 'absolute', top: 'calc(100% + 6px)', right: 0,
-                  backgroundColor: 'var(--surface)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 12, overflow: 'hidden',
-                  boxShadow: 'var(--shadow)',
-                  zIndex: 99, minWidth: 180,
-                }}>
-                  {groups.map((g) => {
-                    const isActive = g.id === activeGroupId;
-                    return (
-                      <button
-                        key={g.id}
-                        onClick={() => { setActiveGroupId(g.id); setOpen(false); window.location.reload(); }}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 10,
-                          width: '100%', padding: '11px 14px',
-                          border: 'none', cursor: 'pointer', textAlign: 'left',
-                          backgroundColor: isActive ? 'var(--bg3)' : 'transparent',
-                          borderBottom: '1px solid var(--border2)',
-                          color: 'var(--text)',
-                        }}
-                      >
-                        <span style={{ fontSize: 18 }}>{GROUP_ICONS[g.groupType] || '🏠'}</span>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: isActive ? 700 : 400, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {g.name}
-                          </div>
-                          {g.shipName && (
-                            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{g.shipName}</div>
-                          )}
-                        </div>
-                        {isActive && <span style={{ color: '#2ecc71', fontSize: 16, flexShrink: 0 }}>✓</span>}
-                      </button>
-                    );
-                  })}
-                  <Link href="/setup" style={{ textDecoration: 'none' }} onClick={() => setOpen(false)}>
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: 8,
-                      padding: '10px 14px', fontSize: 12,
-                      color: 'var(--text-muted)', cursor: 'pointer',
-                    }}>
-                      ⚙️ Gerenciar grupos
-                    </div>
-                  </Link>
+                  className="mobile-dropdown-item"
+                  onClick={() => {
+                    router.push('/profile');
+                    setShowThemeMenu(false);
+                  }}
+                >
+                  👤 Perfil
                 </div>
-              </>
+                <div
+                  className="mobile-dropdown-item"
+                  onClick={() => {
+                    router.push('/settings');
+                    setShowThemeMenu(false);
+                  }}
+                >
+                  ⚙️ Configurações
+                </div>
+                <div
+                  className="mobile-dropdown-item"
+                  onClick={() => {
+                    localStorage.removeItem('token');
+                    router.push('/login');
+                    setShowThemeMenu(false);
+                  }}
+                >
+                  🚪 Sair
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Household Selector (scrollable) */}
+        {showHousehold && household && (
+          <div className="mobile-household">
+            {Array.isArray(household) ? (
+              household.map((h: any) => (
+                <div
+                  key={h.id}
+                  className="mobile-household-item active"
+                  onClick={() => onHouseholdChange?.(h.id)}
+                >
+                  {h.name || 'Sem nome'}
+                </div>
+              ))
+            ) : (
+              <div className="mobile-household-item active">
+                {household?.name || 'Seu Orçamento'}
+              </div>
             )}
           </div>
         )}
+      </div>
 
-        {action && (
-          <Link href={action.href} style={{ textDecoration: 'none' }}>
-            <button style={{
-              padding: '6px 12px',
-              backgroundColor: 'transparent',
+      {/* Desktop Header (768px+) */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '16px 24px',
+          gap: 16,
+          '@media (max-width: 768px)': {
+            display: 'none',
+          },
+        }}
+        className="desktop-header"
+      >
+        <style>{`
+          @media (max-width: 768px) {
+            .desktop-header {
+              display: none !important;
+            }
+          }
+        `}</style>
+
+        {/* Left: Title + Household */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 0 }}>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: 24,
+              fontWeight: 600,
+              color: 'var(--text1)',
+            }}
+          >
+            {title}
+          </h1>
+
+          {showHousehold && household && (
+            <select
+              style={{
+                padding: '8px 12px',
+                backgroundColor: 'var(--surface)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius)',
+                color: 'var(--text1)',
+                fontSize: 14,
+                cursor: 'pointer',
+                maxWidth: 200,
+              }}
+              defaultValue={typeof household === 'object' && household.id ? household.id : ''}
+              onChange={(e) => onHouseholdChange?.(e.target.value)}
+            >
+              {Array.isArray(household) ? (
+                household.map((h: any) => (
+                  <option key={h.id} value={h.id}>
+                    {h.name}
+                  </option>
+                ))
+              ) : (
+                <option value={household?.id || ''}>{household?.name || 'Seu Orçamento'}</option>
+              )}
+            </select>
+          )}
+        </div>
+
+        {/* Right: Action Buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {/* Theme Toggle */}
+          <button
+            onClick={toggleTheme}
+            title="Alternar tema"
+            style={{
+              padding: '8px 16px',
+              backgroundColor: isDark ? '#ffd700' : '#3498db',
+              color: 'white',
+              border: 'none',
+              borderRadius: 'var(--radius)',
+              cursor: 'pointer',
+              fontSize: 14,
+              fontWeight: 600,
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.opacity = '0.8')}
+            onMouseLeave={(e) => (e.currentTarget.opacity = '1')}
+          >
+            {isDark ? '🌙 Escuro' : '☀️ Claro'}
+          </button>
+
+          {/* Settings Button */}
+          <Link
+            href="/profile"
+            style={{
+              padding: '8px 16px',
+              backgroundColor: 'var(--surface)',
               border: '1px solid var(--border)',
-              borderRadius: 8, cursor: 'pointer',
-              fontSize: 18, color: 'var(--text3)',
-            }}>
-              {action.label}
-            </button>
+              borderRadius: 'var(--radius)',
+              color: 'var(--text1)',
+              textDecoration: 'none',
+              cursor: 'pointer',
+              fontSize: 14,
+              fontWeight: 600,
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface2)')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--surface)')}
+          >
+            👤 Perfil
           </Link>
-        )}
 
-        <ThemeToggle />
+          {/* Logout Button */}
+          <button
+            onClick={() => {
+              localStorage.removeItem('token');
+              router.push('/login');
+            }}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: 'var(--danger)',
+              color: 'white',
+              border: 'none',
+              borderRadius: 'var(--radius)',
+              cursor: 'pointer',
+              fontSize: 14,
+              fontWeight: 600,
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.opacity = '0.8')}
+            onMouseLeave={(e) => (e.currentTarget.opacity = '1')}
+          >
+            🚪 Sair
+          </button>
+        </div>
       </div>
     </header>
   );
