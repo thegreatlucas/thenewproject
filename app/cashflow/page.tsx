@@ -79,7 +79,7 @@ export default function CashflowPage() {
     }
 
     for (const i of incomes || []) {
-      const d = (i.month || i.created_at || '').slice(0, 10);
+      const d = (i.month || '').slice(0, 10);
       const day = ensure(d);
       day.income += Number(i.amount);
       day.items.push({ description: i.description || 'Receita', amount: Number(i.amount), type: 'income' });
