@@ -167,7 +167,7 @@ export default function AnalyticsPage() {
       insightsList.push(`${topCat.icon} Você gasta ${percentage}% do seu dinheiro em ${topCat.name}`);
     }
 
-    insightsList.push(`💸 Sua média de gasto é {ormatCurrency(avgDay)} por dia`);
+    insightsList.push(`💸 Sua média de gasto é ${formatCurrency(avgDay)} por dia`);
 
     if (monthly.length >= 2) {
       const lastMonth = monthly[monthly.length - 1].amount;
@@ -185,7 +185,7 @@ export default function AnalyticsPage() {
 
     const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
     const projection = avgDay * daysInMonth;
-    insightsList.push(`🔮 Projeção para o mês: {ormatCurrency(projection)}`);
+    insightsList.push(`🔮 Projeção para o mês: ${formatCurrency(projection)}`);
 
     if (catData.length >= 3) {
       const top3 = catData.slice(0, 3);
@@ -197,18 +197,18 @@ export default function AnalyticsPage() {
     // Insight de juros
     if (totalInterest > 0) {
       const interestPercOfTotal = ((totalInterest / total) * 100).toFixed(1);
-      insightsList.push(`📈 Você pagou {ormatCurrency(totalInterest)} em juros neste período (${interestPercOfTotal}% do total gasto)`);
+      insightsList.push(`📈 Você pagou ${formatCurrency(totalInterest)} em juros neste período (${interestPercOfTotal}% do total gasto)`);
 
       if (interestTxs.length > 0) {
         const biggestInterest = interestTxs.reduce((max, t) =>
           (Number(t.total_with_interest) - Number(t.original_amount)) > (Number(max.total_with_interest) - Number(max.original_amount)) ? t : max
         );
         const biggestInterestAmount = Number(biggestInterest.total_with_interest) - Number(biggestInterest.original_amount);
-        insightsList.push(`💳 A compra "${biggestInterest.description}" teve o maior custo de juros: {ormatCurrency(biggestInterestAmount)} a mais`);
+        insightsList.push(`💳 A compra "${biggestInterest.description}" teve o maior custo de juros: ${formatCurrency(biggestInterestAmount)} a mais`);
       }
 
       if (totalInterest > 100) {
-        insightsList.push(`💡 Dica: com {ormatCurrency(totalInterest)} em juros você poderia ter comprado à vista e economizado esse valor`);
+        insightsList.push(`💡 Dica: com ${formatCurrency(totalInterest)} em juros você poderia ter comprado à vista e economizado esse valor`);
       }
     } else {
       insightsList.push(`✅ Parabéns! Nenhum juro pago neste período — todas as compras parceladas foram sem juros`);
