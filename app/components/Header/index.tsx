@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 
 interface HeaderProps {
   title?: string;
+  backHref?: string;
   showHousehold?: boolean;
   household?: any;
   onHouseholdChange?: (householdId: string) => void;
@@ -13,6 +14,7 @@ interface HeaderProps {
 
 export default function Header({
   title = 'Finanças',
+  backHref,
   showHousehold = true,
   household,
   onHouseholdChange,
@@ -26,6 +28,14 @@ export default function Header({
     const newTheme = isDark ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', newTheme);
     localStorage.setItem('theme', newTheme);
+  };
+
+  const goBack = () => {
+    if (backHref) {
+      router.push(backHref);
+    } else {
+      router.back();
+    }
   };
 
   return (
@@ -161,7 +171,19 @@ export default function Header({
 
         {/* Top Row: Title + Action Buttons */}
         <div className="mobile-header-top">
-          <h1 className="mobile-header-title">{title}</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+            {backHref && (
+              <button
+                className="mobile-icon-btn"
+                onClick={goBack}
+                title="Voltar"
+                style={{ flex: '0 0 auto' }}
+              >
+                ←
+              </button>
+            )}
+            <h1 className="mobile-header-title">{title}</h1>
+          </div>
           <div className="mobile-header-buttons">
             {/* Theme Toggle */}
             <button
@@ -266,6 +288,28 @@ export default function Header({
 
         {/* Left: Title + Household */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 0 }}>
+          {backHref && (
+            <button
+              onClick={goBack}
+              title="Voltar"
+              style={{
+                width: '40px',
+                height: '40px',
+                padding: 0,
+                backgroundColor: 'var(--surface)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '18px',
+                transition: 'all 0.2s',
+              }}
+            >
+              ←
+            </button>
+          )}
           <h1
             style={{
               margin: 0,
