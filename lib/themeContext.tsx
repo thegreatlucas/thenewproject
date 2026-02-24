@@ -1,78 +1,39 @@
 'use client';
-// lib/themeContext.tsx — Dark/Light + Brutalista
+// lib/themeContext.tsx — Dark/Light mode global
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
-type ColorTheme = 'light' | 'dark';
-type StyleTheme = 'genz' | 'brutalist';
+type Theme = 'light' | 'dark';
 
 interface ThemeCtx {
-  colorTheme: ColorTheme;
-  styleTheme: StyleTheme;
+  theme: Theme;
   isDark: boolean;
-  isBrutalist: boolean;
-  toggleColor: () => void;
-  toggleStyle: () => void;
+  toggle: () => void;
 }
 
-const Ctx = createContext<ThemeCtx>({
-  colorTheme: 'light', styleTheme: 'genz',
-  isDark: false, isBrutalist: false,
-  toggleColor: () => {}, toggleStyle: () => {},
-});
+const Ctx = createContext<ThemeCtx>({ theme: 'light', isDark: false, toggle: () => {} });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [colorTheme, setColorTheme] = useState<ColorTheme>('light');
-  const [styleTheme, setStyleTheme] = useState<StyleTheme>('genz');
+  const [theme, setTheme] = useState<Theme>('light');
 
   useEffect(() => {
-    const savedColor = localStorage.getItem('rc-theme') as ColorTheme | null;
-    const savedStyle = localStorage.getItem('rc-style') as StyleTheme | null;
+    const saved = localStorage.getItem('rc-theme') as Theme | null;
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-    const initColor: ColorTheme = savedColor ?? (prefersDark ? 'dark' : 'light');
-    const initStyle: StyleTheme = savedStyle ?? 'genz';
-
-    setColorTheme(initColor);
-    setStyleTheme(initStyle);
-    applyTheme(initColor, initStyle);
+    const initial: Theme = saved ?? (prefersDark ? 'dark' : 'light');
+    setTheme(initial);
+    document.documentElement.setAttribute('data-theme', initial);
   }, []);
 
-  function applyTheme(color: ColorTheme, style: StyleTheme) {
-    const root = document.documentElement;
-    root.setAttribute('data-theme', color);
-    if (style === 'brutalist') root.classList.add('brutalist');
-    else root.classList.remove('brutalist');
-  }
-
-  function toggleColor() {
-    setColorTheme((prev) => {
-      const next: ColorTheme = prev === 'light' ? 'dark' : 'light';
+  function toggle() {
+    setTheme((prev) => {
+      const next: Theme = prev === 'light' ? 'dark' : 'light';
       localStorage.setItem('rc-theme', next);
-      applyTheme(next, styleTheme);
+      document.documentElement.setAttribute('data-theme', next);
       return next;
     });
   }
 
-  function toggleStyle() {
-    setStyleTheme((prev) => {
-      const next: StyleTheme = prev === 'genz' ? 'brutalist' : 'genz';
-      localStorage.setItem('rc-style', next);
-      applyTheme(colorTheme, next);
-      return next;
-    });
-  }
-
-  return (
-    <Ctx.Provider value={{
-      colorTheme, styleTheme,
-      isDark: colorTheme === 'dark',
-      isBrutalist: styleTheme === 'brutalist',
-      toggleColor, toggleStyle,
-    }}>
-      {children}
-    </Ctx.Provider>
-  );
+  return <Ctx.Provider value={{ theme, isDark: theme === 'dark', toggle }}>{children}</Ctx.Provider>;
 }
 
 export const useTheme = () => useContext(Ctx);

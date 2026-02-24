@@ -8,63 +8,31 @@ import Header from '@/app/components/Header';
 import { useCrypto } from '@/lib/cryptoContext';
 import { usePinUnlock } from '@/lib/usePinUnlock';
 import { useFinanceGroup } from '@/lib/financeGroupContext';
-import { formatCurrency } from '@/lib/format';
-
-function Skeleton({ w = '100%', h = 20 }: { w?: string; h?: number }) {
-  return <div className="skeleton" style={{ width: w, height: h, borderRadius: 'var(--radius-sm)' }} />;
-}
-
-function SectionHeader({ title, href, linkLabel = 'Ver tudo →' }: { title: string; href: string; linkLabel?: string }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-      <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)', fontFamily: 'var(--font-display)' }}>{title}</span>
-      <Link href={href} style={{ fontSize: 12, color: 'var(--blue)', textDecoration: 'none', fontWeight: 600 }}>{linkLabel}</Link>
-    </div>
-  );
-}
-
-function ProgressBar({ pct, color = 'var(--blue)' }: { pct: number; color?: string }) {
-  return (
-    <div style={{ width: '100%', height: 6, backgroundColor: 'var(--bg3)', borderRadius: 99, overflow: 'hidden' }}>
-      <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', backgroundColor: color, borderRadius: 99, transition: 'width 0.6s cubic-bezier(0.34,1.56,0.64,1)' }} />
-    </div>
-  );
-}
-
-function ModuleBtn({ href, icon, label }: { href: string; icon: string; label: string }) {
-  return (
-    <Link href={href} style={{ textDecoration: 'none' }}>
-      <div style={{
-        padding: '12px 4px', border: '1px solid var(--border)', borderRadius: 'var(--radius)',
-        textAlign: 'center', cursor: 'pointer', backgroundColor: 'var(--surface)', boxShadow: 'var(--shadow-sm)',
-        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-      }}
-        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow)'; }}
-        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-sm)'; }}
-      >
-        <div style={{ fontSize: 20, marginBottom: 4 }}>{icon}</div>
-        <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 0.4 }}>{label}</div>
-      </div>
-    </Link>
-  );
-}
+import { Button } from '@/app/components/ui/Button';
+import { Card } from '@/app/components/ui/Card';
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
+  const [userEmail, setUserEmail] = useState('');
   const [userName, setUserName] = useState('');
   const [householdId, setHouseholdId] = useState<string | null>(null);
   const [householdName, setHouseholdName] = useState('');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [hasPartner, setHasPartner] = useState(false);
   const [partnerName, setPartnerName] = useState('Parceiro(a)');
+
   const [totalIncome, setTotalIncome] = useState(0);
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [sharedExpenses, setSharedExpenses] = useState(0);
+  const [individualExpenses, setIndividualExpenses] = useState(0);
+
   const [topCategories, setTopCategories] = useState<{ name: string; icon: string; color: string; amount: number }[]>([]);
   const [upcomingRecurrences, setUpcomingRecurrences] = useState<any[]>([]);
   const [balance, setBalance] = useState<{ amount: number; iOwe: boolean } | null>(null);
   const [activeGoals, setActiveGoals] = useState<any[]>([]);
   const [budgetSummary, setBudgetSummary] = useState<{ total: number; spent: number } | null>(null);
+
+  // PIN Modal
   const [showPinModal, setShowPinModal] = useState(false);
   const [pin, setPin] = useState('');
   const [pinError, setPinError] = useState('');
@@ -74,23 +42,37 @@ export default function Dashboard() {
   const router = useRouter();
   const { householdKey } = useCrypto();
   const { unlockWithPin } = usePinUnlock();
-  const { activeGroupId, activeGroup } = useFinanceGroup();
+  const { activeGroupId, activeGroup, loading: groupLoading } = useFinanceGroup();
 
   const now = new Date();
   const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-  const lastDay  = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
   const monthLabel = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-  const today    = now.toISOString().split('T')[0];
-  const in7days  = new Date(now.getTime() + 7 * 86400000).toISOString().split('T')[0];
+  const today = now.toISOString().split('T')[0];
+  const in7days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
   useEffect(() => {
     async function bootstrap() {
+      // 1. Verifica autenticação
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/login'); return; }
-      const { data: members, error } = await supabase.from('household_members').select('household_id').eq('user_id', user.id);
-      if (error || !members || members.length === 0) { router.push('/setup'); return; }
-      init(activeGroupId || members[0].household_id);
+
+      // 2. Verifica se o usuário tem household — direto no banco, sem depender do contexto
+      const { data: members, error } = await supabase
+        .from('household_members')
+        .select('household_id')
+        .eq('user_id', user.id);
+
+      if (error || !members || members.length === 0) {
+        router.push('/setup');
+        return;
+      }
+
+      // 3. Usa o contexto se já estiver pronto, senão usa o primeiro da lista
+      const groupId = activeGroupId || members[0].household_id;
+      init(groupId);
     }
+
     bootstrap();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -98,101 +80,199 @@ export default function Dashboard() {
   async function init(groupId: string) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push('/login'); return; }
+    setUserEmail(user.email || '');
     setUserName(user.user_metadata?.name || user.email?.split('@')[0] || '');
     setCurrentUserId(user.id);
-    setHouseholdId(groupId);
+
+    const hid = groupId;
+    setHouseholdId(hid);
     setHouseholdName(activeGroup?.name || '');
+
     const hasCrypto = !!activeGroup?.hasCrypto;
     setHouseholdHasCrypto(hasCrypto);
-    if (hasCrypto && !householdKey) setShowPinModal(true);
+
+    if (hasCrypto && !householdKey) {
+      setShowPinModal(true);
+    }
+
     await Promise.all([
-      loadFinancials(groupId, user.id),
-      loadUpcomingRecurrences(groupId),
-      loadBalance(groupId, user.id),
-      loadGoals(groupId, user.id),
-      loadBudgetSummary(groupId),
-      checkPartner(groupId, user.id),
+      loadFinancials(hid, user.id),
+      loadUpcomingRecurrences(hid),
+      loadBalance(hid, user.id),
+      loadGoals(hid, user.id),
+      loadBudgetSummary(hid),
+      checkPartner(hid, user.id),
     ]);
+
     setLoading(false);
   }
 
   async function handlePinSubmit() {
-    if (!pin || pin.length < 4) { setPinError('Digite pelo menos 4 dígitos.'); return; }
+    if (!pin || pin.length < 4) {
+      setPinError('Digite pelo menos 4 dígitos.');
+      return;
+    }
     if (!householdId) return;
-    setPinLoading(true); setPinError('');
+
+    setPinLoading(true);
+    setPinError('');
+
     const ok = await unlockWithPin(householdId, pin);
-    if (ok) { setShowPinModal(false); setPin(''); } else setPinError('PIN incorreto. Tente novamente.');
+
+    if (ok) {
+      setShowPinModal(false);
+      setPin('');
+    } else {
+      setPinError('PIN incorreto. Tente novamente.');
+    }
     setPinLoading(false);
   }
 
   async function checkPartner(hid: string, uid: string) {
-    const { data } = await supabase.from('household_members').select('user_id').eq('household_id', hid);
+    const { data } = await supabase
+      .from('household_members')
+      .select('user_id')
+      .eq('household_id', hid);
+
     const members = data || [];
     setHasPartner(members.length >= 2);
+
     const partnerRow = members.find((m: any) => m.user_id !== uid);
     if (partnerRow) {
-      const { data: profile } = await supabase.from('profiles').select('name').eq('id', partnerRow.user_id).single();
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', partnerRow.user_id)
+        .single();
       if (profile?.name) setPartnerName(profile.name);
     }
   }
 
   async function loadFinancials(hid: string, uid: string) {
-    const { data: incomes } = await supabase.from('incomes').select('amount')
-      .eq('household_id', hid).eq('user_id', uid).gte('month', firstDay).lte('month', lastDay);
-    setTotalIncome((incomes || []).reduce((s, i) => s + Number(i.amount), 0));
+    const { data: incomes } = await supabase
+      .from('incomes')
+      .select('amount')
+      .eq('household_id', hid)
+      .eq('user_id', uid)
+      .gte('month', firstDay)
+      .lte('month', lastDay);
 
-    const { data: txs } = await supabase.from('transactions')
+    const income = (incomes || []).reduce((s, i) => s + Number(i.amount), 0);
+    setTotalIncome(income);
+
+    const { data: txs } = await supabase
+      .from('transactions')
       .select('amount, installment_value, installments_count, split, payer_id, categories(name, icon, color)')
-      .eq('household_id', hid).eq('user_id', uid).gte('created_at', firstDay).lte('created_at', lastDay);
+      .eq('household_id', hid)
+      .eq('user_id', uid)
+      .gte('date', firstDay)
+      .lte('date', lastDay);
 
     const all = txs || [];
-    const eff = (t: any) => t.installments_count > 1 && t.installment_value ? Number(t.installment_value) : Number(t.amount);
-    setTotalExpenses(all.reduce((s, t) => s + eff(t), 0));
-    setSharedExpenses(all.filter(t => t.split === 'shared').reduce((s, t) => s + eff(t), 0));
+    // Parcelados: usar installment_value (parcela mensal), não amount (total da compra)
+    const eff = (t: any) =>
+      t.installments_count > 1 && t.installment_value
+        ? Number(t.installment_value)
+        : Number(t.amount);
+
+    const total = all.reduce((s, t) => s + eff(t), 0);
+    const shared = all.filter(t => t.split === 'shared').reduce((s, t) => s + eff(t), 0);
+    const individual = all.filter(t => t.split === 'individual').reduce((s, t) => s + eff(t), 0);
+
+    setTotalExpenses(total);
+    setSharedExpenses(shared);
+    setIndividualExpenses(individual);
 
     const catMap = new Map<string, { name: string; icon: string; color: string; amount: number }>();
     all.forEach((t: any) => {
       const key = t.categories?.name || 'Sem categoria';
-      const ex = catMap.get(key);
-      catMap.set(key, { name: key, icon: t.categories?.icon || '📁', color: t.categories?.color || '#95a5a6', amount: (ex?.amount || 0) + eff(t) });
+      const existing = catMap.get(key);
+      catMap.set(key, {
+        name: key,
+        icon: t.categories?.icon || '📁',
+        color: t.categories?.color || '#95a5a6',
+        amount: (existing?.amount || 0) + eff(t),
+      });
     });
-    setTopCategories(Array.from(catMap.values()).sort((a, b) => b.amount - a.amount).slice(0, 3));
+
+    const top3 = Array.from(catMap.values())
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 3);
+    setTopCategories(top3);
   }
 
   async function loadUpcomingRecurrences(hid: string) {
-    const { data } = await supabase.from('recurrence_rules').select('*')
-      .eq('household_id', hid).eq('active', true).lte('next_date', in7days).order('next_date');
+    const { data } = await supabase
+      .from('recurrence_rules')
+      .select('*')
+      .eq('household_id', hid)
+      .eq('active', true)
+      .lte('next_date', in7days)
+      .order('next_date');
+
     setUpcomingRecurrences(data || []);
   }
 
   async function loadBalance(hid: string, uid: string) {
-    const { data: balRows } = await supabase.from('balances').select('*').eq('household_id', hid);
+    const { data: balRows } = await supabase
+      .from('balances')
+      .select('*')
+      .eq('household_id', hid);
+
     let net = 0;
     for (const row of balRows || []) {
       if (row.to_user_id === uid) net += Number(row.amount);
       else if (row.from_user_id === uid) net -= Number(row.amount);
     }
-    setBalance(Math.abs(net) > 0.001 ? { amount: Math.abs(net), iOwe: net < 0 } : null);
+
+    if (Math.abs(net) > 0.001) {
+      setBalance({ amount: Math.abs(net), iOwe: net < 0 });
+    } else {
+      setBalance(null);
+    }
   }
 
   async function loadGoals(hid: string, uid: string) {
-    const { data } = await supabase.from('goals').select('*')
-      .eq('household_id', hid).or(`type.eq.shared,owner_id.eq.${uid}`).order('created_at');
-    setActiveGoals((data || []).filter(g => Number(g.current_amount) < Number(g.target_amount)).slice(0, 3));
+    const { data } = await supabase
+      .from('goals')
+      .select('*')
+      .eq('household_id', hid)
+      .or(`type.eq.shared,owner_id.eq.${uid}`)
+      .order('created_at');
+
+    const inProgress = (data || [])
+      .filter(g => Number(g.current_amount) < Number(g.target_amount))
+      .slice(0, 3);
+    setActiveGoals(inProgress);
   }
 
   async function loadBudgetSummary(hid: string) {
     const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-    const { data: budgets } = await supabase.from('budgets').select('amount').eq('household_id', hid).eq('month', monthStr);
+
+    const { data: budgets } = await supabase
+      .from('budgets')
+      .select('amount')
+      .eq('household_id', hid)
+      .eq('month', monthStr);
+
     if (!budgets || budgets.length === 0) { setBudgetSummary(null); return; }
-    const total = budgets.reduce((s, b) => s + Number(b.amount), 0);
-    const { data: txs } = await supabase.from('transactions').select('amount')
-      .eq('household_id', hid).gte('created_at', firstDay).lte('created_at', lastDay);
-    setBudgetSummary({ total, spent: (txs || []).reduce((s, t) => s + Number(t.amount), 0) });
+
+    const totalBudget = budgets.reduce((s, b) => s + Number(b.amount), 0);
+
+    const { data: txs } = await supabase
+      .from('transactions')
+      .select('amount')
+      .eq('household_id', hid)
+      .gte('date', firstDay)
+      .lte('date', lastDay);
+
+    const spent = (txs || []).reduce((s, t) => s + Number(t.amount), 0);
+    setBudgetSummary({ total: totalBudget, spent });
   }
 
   function daysUntil(dateStr: string) {
-    const diff = Math.round((new Date(dateStr + 'T12:00:00').getTime() - now.getTime()) / 86400000);
+    const d = new Date(dateStr + 'T12:00:00');
+    const diff = Math.round((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     if (diff < 0) return 'atrasado';
     if (diff === 0) return 'hoje';
     if (diff === 1) return 'amanhã';
@@ -200,182 +280,239 @@ export default function Dashboard() {
   }
 
   const balance_display = totalIncome > 0 ? totalIncome - totalExpenses : null;
-  const budgetPct = budgetSummary ? (budgetSummary.spent / budgetSummary.total) * 100 : 0;
 
-  const MODULES = [
-    { href: '/transactions',  icon: '💸', label: 'Gastos' },
-    { href: '/budgets',       icon: '💰', label: 'Orçamento' },
-    { href: '/incomes',       icon: '📥', label: 'Renda' },
-    { href: '/goals',         icon: '🎯', label: 'Metas' },
-    { href: '/credit-cards',  icon: '💳', label: 'Cartões' },
-    { href: '/accounts',      icon: '🏦', label: 'Contas' },
-    { href: '/recurrences',   icon: '🔁', label: 'Recorrências' },
-    { href: '/analytics',     icon: '📊', label: 'Analytics' },
-    { href: '/cashflow',      icon: '📅', label: 'Fluxo' },
-    { href: '/financings',    icon: '🏠', label: 'Financ.' },
-    { href: '/balances',      icon: '🤝', label: 'Acerto' },
-    { href: '/categories',    icon: '🏷️', label: 'Categorias' },
-    { href: '/simulator',     icon: '🧮', label: 'Simulador' },
-    { href: '/closings',      icon: '📋', label: 'Fechamentos' },
-    { href: '/export',        icon: '📤', label: 'Exportar' },
-    { href: '/setup',         icon: '⚙️', label: 'Config.' },
-  ];
+  if (loading) {
+    return (
+      <main className="mx-auto max-w-4xl px-4 py-6">
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">⏳ Carregando seu dashboard...</p>
+      </main>
+    );
+  }
 
   return (
     <>
-      <Header title="💑 Finanças" action={{ label: '⚙️', href: '/setup' }} />
+      <Header title="💑 Finanças do grupo" action={{ label: '⚙️', href: '/setup' }} />
 
       {/* PIN Modal */}
       {showPinModal && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, backdropFilter: 'blur(8px)' }}>
-          <div className="card animate-in" style={{ padding: 32, maxWidth: 360, width: '100%' }}>
+        <div style={{
+          position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)',
+          zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 16,
+        }}>
+          <div style={{
+            backgroundColor: 'white', borderRadius: 16, padding: 32,
+            maxWidth: 360, width: '100%', boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+          }}>
             <div style={{ textAlign: 'center', marginBottom: 24 }}>
-              <div style={{ fontSize: 48, marginBottom: 8 }}>🔐</div>
-              <h2 style={{ margin: 0, fontSize: 20, fontFamily: 'var(--font-display)', color: 'var(--text)' }}>Digite seu PIN</h2>
-              <p style={{ margin: '8px 0 0', color: 'var(--text-muted)', fontSize: 14 }}>Para descriptografar seus dados financeiros</p>
+              <div style={{ fontSize: 40, marginBottom: 8 }}>🔐</div>
+              <h2 style={{ margin: 0, fontSize: 20 }}>Digite seu PIN</h2>
+              <p style={{ margin: '8px 0 0', color: '#666', fontSize: 14 }}>
+                Para descriptografar seus dados financeiros
+              </p>
             </div>
-            <input type="password" inputMode="numeric" placeholder="••••" value={pin}
+
+            <input
+              type="password"
+              inputMode="numeric"
+              placeholder="PIN (mínimo 4 dígitos)"
+              value={pin}
               onChange={e => { setPin(e.target.value); setPinError(''); }}
-              onKeyDown={e => e.key === 'Enter' && handlePinSubmit()} autoFocus
-              style={{ width: '100%', padding: '14px', fontSize: 24, textAlign: 'center', letterSpacing: 8, border: `2px solid ${pinError ? 'var(--red)' : 'var(--border)'}`, borderRadius: 'var(--radius-sm)', outline: 'none', boxSizing: 'border-box' }}
+              onKeyDown={e => e.key === 'Enter' && handlePinSubmit()}
+              autoFocus
+              style={{
+                width: '100%', padding: '14px', border: pinError ? '2px solid #e74c3c' : '2px solid #ddd',
+                borderRadius: 10, fontSize: 18, textAlign: 'center', letterSpacing: 6,
+                boxSizing: 'border-box', outline: 'none',
+              }}
             />
-            {pinError && <div style={{ color: 'var(--red)', fontSize: 13, textAlign: 'center', marginTop: 8 }}>{pinError}</div>}
-            <button onClick={handlePinSubmit} disabled={pinLoading} style={{ width: '100%', marginTop: 16, padding: '14px', backgroundColor: pinLoading ? 'var(--text-muted)' : 'var(--blue)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: pinLoading ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 16 }}>
-              {pinLoading ? '⏳ Verificando...' : '🔓 Desbloquear'}
+
+            {pinError && (
+              <div style={{ color: '#e74c3c', fontSize: 13, textAlign: 'center', marginTop: 8 }}>
+                {pinError}
+              </div>
+            )}
+
+            <button
+              onClick={handlePinSubmit}
+              disabled={pinLoading}
+              style={{
+                width: '100%', marginTop: 16, padding: '14px',
+                backgroundColor: pinLoading ? '#95a5a6' : '#3498db',
+                color: 'white', border: 'none', borderRadius: 10,
+                cursor: pinLoading ? 'not-allowed' : 'pointer',
+                fontWeight: 'bold', fontSize: 16,
+              }}
+            >
+              {pinLoading ? 'Verificando...' : '🔓 Desbloquear'}
             </button>
-            <button onClick={() => setShowPinModal(false)} style={{ width: '100%', marginTop: 10, padding: '10px', backgroundColor: 'transparent', color: 'var(--text-muted)', border: 'none', cursor: 'pointer', fontSize: 13 }}>
-              Pular por agora
+
+            <button
+              onClick={() => setShowPinModal(false)}
+              style={{
+                width: '100%', marginTop: 10, padding: '10px',
+                backgroundColor: 'transparent', color: '#999',
+                border: 'none', cursor: 'pointer', fontSize: 13,
+              }}
+            >
+              Pular por agora (dados não serão descriptografados)
             </button>
           </div>
         </div>
       )}
 
-      <main style={{ maxWidth: 720, margin: '0 auto', padding: '20px 16px 100px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <main className="mx-auto flex max-w-4xl flex-col gap-6 px-4 pb-12 pt-6">
 
-        {/* Saudação */}
-        <div className="animate-in" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {/* Header */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--text)' }}>
-              Olá{userName ? `, ${userName.split(' ')[0]}` : ''}! 👋
+            <h1 className="text-xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+              Olá{userName ? `, ${userName}` : ''}! 👋
             </h1>
-            <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-muted)' }}>
-              {householdName && `🏠 ${householdName} · `}
-              <span style={{ textTransform: 'capitalize' }}>{monthLabel}</span>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+              {householdName && `🏠 ${householdName} · `}{monthLabel}
             </p>
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div className="flex items-center gap-2">
             {householdHasCrypto && (
-              <button onClick={() => { if (!householdKey) setShowPinModal(true); }} style={{ width: 36, height: 36, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', backgroundColor: 'var(--surface)', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <button
+                onClick={() => { if (!householdKey) setShowPinModal(true); }}
+                title={householdKey ? 'Dados descriptografados' : 'Clique para inserir o PIN'}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 text-lg hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
+              >
                 {householdKey ? '🔓' : '🔒'}
               </button>
             )}
-            <Link href="/transactions/new" style={{ textDecoration: 'none' }}>
-              <button style={{ padding: '8px 18px', backgroundColor: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'var(--font-display)', boxShadow: '0 4px 12px rgba(0,200,150,0.3)' }}>
+            <Link href="/transactions/new">
+              <Button variant="primary" size="md">
                 ➕ Lançar
-              </button>
+              </Button>
             </Link>
           </div>
         </div>
 
-        {/* Aviso sem parceiro */}
         {!hasPartner && (
-          <div className="animate-in card" style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.08)' }}>
-            <span style={{ fontSize: 13, color: '#b45309' }}>🧑‍🤝‍🧑 Seu parceiro(a) ainda não entrou.</span>
-            <Link href="/setup" style={{ fontSize: 12, fontWeight: 700, color: '#b45309', textDecoration: 'underline' }}>Convidar →</Link>
-          </div>
+          <Card className="flex items-center justify-between border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/40">
+            <span>🧑‍🤝‍🧑 Seu parceiro(a) ainda não entrou neste grupo.</span>
+            <Link href="/setup" className="text-xs font-semibold text-amber-900 underline underline-offset-4 dark:text-amber-200">
+              Compartilhar código →
+            </Link>
+          </Card>
         )}
 
-          <div className="card animate-in stagger" style={{ display: 'flex', flexDirection: 'column', gap: 0, padding: 0, overflow: 'hidden' }}>
-            {[
-              { label: 'Renda',  value: formatCurrency(totalIncome),   accent: 'var(--green)', sub: totalIncome === 0 ? 'Cadastre sua renda' : undefined },
-              { label: 'Gastos', value: formatCurrency(totalExpenses), accent: 'var(--red)',   sub: sharedExpenses > 0 ? `${formatCurrency(sharedExpenses)} compartilhado` : undefined },
-              { label: 'Saldo',  value: balance_display === null ? '—' : formatCurrency(balance_display), accent: balance_display === null ? 'var(--text-muted)' : balance_display >= 0 ? 'var(--blue)' : 'var(--red)', sub: balance_display === null ? 'Cadastre sua renda' : undefined },
-            ].map((k, i, arr) => (
-              <div key={k.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', borderBottom: i < arr.length - 1 ? '1px solid var(--border2)' : 'none' }}>
-                <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--text-muted)' }}>{k.label}</span>
-                <div style={{ textAlign: 'right' }}>
-                  {loading ? <div className="skeleton" style={{ width: 80, height: 20, borderRadius: 'var(--radius-sm)' }} /> : (
-                    <>
-                      <div style={{ fontSize: 18, fontWeight: 800, color: k.accent, fontFamily: 'var(--font-display)' }}>{k.value}</div>
-                      {k.sub && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{k.sub}</div>}
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+        {/* Cards financeiros */}
+        <div className="grid gap-3 md:grid-cols-3">
+          <Card className="flex flex-col gap-2 px-4 py-3">
+            <span className="text-xs font-medium uppercase tracking-wide text-emerald-600">Renda</span>
+            <span className="text-lg font-semibold text-emerald-600">
+              R$ {totalIncome.toFixed(2)}
+            </span>
+            {totalIncome === 0 && (
+              <Link href="/incomes" className="mt-1 text-xs font-medium text-emerald-700 underline underline-offset-4">
+                + Cadastrar
+              </Link>
+            )}
+          </Card>
+          <Card className="flex flex-col gap-2 px-4 py-3">
+            <span className="text-xs font-medium uppercase tracking-wide text-rose-600">Gastos</span>
+            <span className="text-lg font-semibold text-rose-600">
+              R$ {totalExpenses.toFixed(2)}
+            </span>
+            {sharedExpenses > 0 && (
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                👥 R$ {sharedExpenses.toFixed(2)} compartilhado
+              </span>
+            )}
+          </Card>
+          <Card className="flex flex-col gap-2 px-4 py-3">
+            <span className="text-xs font-medium uppercase tracking-wide text-zinc-600 dark:text-zinc-300">Saldo</span>
+            <span
+              className={[
+                'text-lg font-semibold',
+                balance_display === null
+                  ? 'text-zinc-400'
+                  : balance_display >= 0
+                    ? 'text-emerald-600'
+                    : 'text-rose-600',
+              ].join(' ')}
+            >
+              {balance_display === null ? '— Cadastre sua renda' : `R$ ${balance_display.toFixed(2)}`}
+            </span>
+          </Card>
+        </div>
 
-        {/* Orçamento */}
-        {(budgetSummary || loading) && (
-          <div className="card animate-in" style={{ padding: '16px 20px' }}>
-            <SectionHeader title="💰 Orçamento do mês" href="/budgets" linkLabel="Detalhes →" />
-            {loading ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}><Skeleton h={14} w="60%" /><Skeleton h={6} /></div>
-            ) : budgetSummary ? (
-              <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--text3)', marginBottom: 8 }}>
-                  <span>{formatCurrency(budgetSummary.spent)} gasto</span>
-                  <span style={{ fontWeight: 700, color: budgetPct > 100 ? 'var(--red)' : budgetPct > 80 ? 'var(--orange)' : 'var(--text)' }}>
-                    {budgetPct.toFixed(0)}% de {formatCurrency(budgetSummary.total)}
-                  </span>
-                </div>
-                <ProgressBar pct={budgetPct} color={budgetPct > 100 ? 'var(--red)' : budgetPct > 80 ? 'var(--orange)' : 'var(--green)'} />
-                {budgetSummary.spent > budgetSummary.total && (
-                  <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 8, fontWeight: 600 }}>
-                    ⚠️ Estourado em {formatCurrency(budgetSummary.spent - budgetSummary.total)}
-                  </div>
-                )}
-              </>
-            ) : null}
-          </div>
-        )}
-
-        {/* Top Categorias */}
-        {(topCategories.length > 0 || loading) && (
-          <div className="card animate-in" style={{ padding: '16px 20px' }}>
-            <SectionHeader title="📊 Top categorias" href="/analytics" />
-            {loading ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {[1,2,3].map(i => <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 5 }}><Skeleton h={12} w="50%" /><Skeleton h={5} /></div>)}
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {topCategories.map((cat, i) => {
-                  const pct = totalExpenses > 0 ? (cat.amount / totalExpenses) * 100 : 0;
-                  return (
-                    <div key={i}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 5, alignItems: 'center' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text)' }}>
-                          <span style={{ width: 28, height: 28, borderRadius: 'var(--radius-sm)', backgroundColor: cat.color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>{cat.icon}</span>
-                          {cat.name}
-                        </span>
-                        <span style={{ fontWeight: 700, color: 'var(--text)' }}>
-                          {formatCurrency(cat.amount)} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({pct.toFixed(0)}%)</span>
-                        </span>
-                      </div>
-                      <ProgressBar pct={pct} color={cat.color || 'var(--blue)'} />
-                    </div>
-                  );
-                })}
+        {/* Orçamento do mês */}
+        {budgetSummary && (
+          <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <span style={{ fontWeight: 'bold', fontSize: 14 }}>💰 Orçamento do mês</span>
+              <Link href="/budgets" style={{ fontSize: 12, color: '#3498db' }}>Ver detalhes →</Link>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#666', marginBottom: 6 }}>
+              <span>R$ {budgetSummary.spent.toFixed(2)} gasto</span>
+              <span>R$ {budgetSummary.total.toFixed(2)} orçado</span>
+            </div>
+            <div style={{ width: '100%', height: 8, backgroundColor: '#f0f0f0', borderRadius: 10, overflow: 'hidden' }}>
+              <div style={{
+                width: `${Math.min((budgetSummary.spent / budgetSummary.total) * 100, 100)}%`,
+                height: '100%',
+                backgroundColor: budgetSummary.spent > budgetSummary.total ? '#e74c3c' : budgetSummary.spent / budgetSummary.total > 0.8 ? '#f39c12' : '#2ecc71',
+                borderRadius: 10,
+              }} />
+            </div>
+            {budgetSummary.spent > budgetSummary.total && (
+              <div style={{ fontSize: 12, color: '#e74c3c', marginTop: 6 }}>
+                ⚠️ Orçamento estourado em R$ {(budgetSummary.spent - budgetSummary.total).toFixed(2)}
               </div>
             )}
           </div>
         )}
 
-        {/* Acerto de contas */}
+        {/* Top categorias do mês */}
+        {topCategories.length > 0 && (
+          <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <span style={{ fontWeight: 'bold', fontSize: 14 }}>📊 Top categorias este mês</span>
+              <Link href="/analytics" style={{ fontSize: 12, color: '#3498db' }}>Ver tudo →</Link>
+            </div>
+            {topCategories.map((cat, i) => {
+              const pct = totalExpenses > 0 ? (cat.amount / totalExpenses) * 100 : 0;
+              return (
+                <div key={i} style={{ marginBottom: i < topCategories.length - 1 ? 12 : 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+                    <span>{cat.icon} {cat.name}</span>
+                    <span style={{ fontWeight: 'bold' }}>R$ {cat.amount.toFixed(2)} <span style={{ color: '#999', fontWeight: 'normal' }}>({pct.toFixed(0)}%)</span></span>
+                  </div>
+                  <div style={{ width: '100%', height: 5, backgroundColor: '#f0f0f0', borderRadius: 10, overflow: 'hidden' }}>
+                    <div style={{ width: `${pct}%`, height: '100%', backgroundColor: cat.color || '#3498db', borderRadius: 10 }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Acerto entre casal */}
         {hasPartner && (
           <Link href="/balances" style={{ textDecoration: 'none' }}>
-            <div className="card animate-in" style={{ padding: '16px 20px', cursor: 'pointer', borderColor: balance ? 'var(--orange)' : 'var(--green)', backgroundColor: balance ? 'rgba(255,154,60,0.06)' : 'rgba(0,200,150,0.06)' }}>
+            <div style={{
+              border: balance ? '1px solid #f39c12' : '1px solid #d4edda',
+              borderRadius: 12, padding: 16, marginBottom: 16,
+              backgroundColor: balance ? '#fffdf0' : '#f0fff4',
+              cursor: 'pointer',
+            }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)', fontFamily: 'var(--font-display)' }}>🤝 Acerto de contas</div>
-                  <div style={{ fontSize: 13, color: 'var(--text3)', marginTop: 4 }}>
+                  <div style={{ fontWeight: 'bold', fontSize: 14 }}>🤝 Acerto de contas</div>
+                  <div style={{ fontSize: 13, color: '#666', marginTop: 4 }}>
                     {balance
-                      ? (balance.iOwe ? `Você deve ${formatCurrency(balance.amount)} para ${partnerName}` : `${partnerName} deve ${formatCurrency(balance.amount)} para você`)
+                      ? (balance.iOwe
+                        ? `Você deve R$ ${balance.amount.toFixed(2)} para ${partnerName}`
+                        : `${partnerName} deve R$ ${balance.amount.toFixed(2)} para você`)
                       : `Você e ${partnerName} estão quites! 🎉`}
                   </div>
                 </div>
-                <span style={{ color: 'var(--text-muted)', fontSize: 20 }}>›</span>
+                <span style={{ color: '#999', fontSize: 18 }}>→</span>
               </div>
             </div>
           </Link>
@@ -383,59 +520,85 @@ export default function Dashboard() {
 
         {/* Próximas recorrências */}
         {upcomingRecurrences.length > 0 && (
-          <div className="card animate-in" style={{ padding: '16px 20px' }}>
-            <SectionHeader title="🔁 Próximas contas (7 dias)" href="/recurrences" linkLabel="Ver todas →" />
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {upcomingRecurrences.map((r, i) => {
-                const overdue = r.next_date <= today;
-                return (
-                  <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: i < upcomingRecurrences.length - 1 ? '1px solid var(--border2)' : 'none' }}>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{r.name || '—'}</div>
-                      <div style={{ fontSize: 11, color: overdue ? 'var(--red)' : 'var(--text-muted)', marginTop: 2 }}>
-                        {new Date(r.next_date + 'T12:00:00').toLocaleDateString('pt-BR')} · {daysUntil(r.next_date)}
-                      </div>
-                    </div>
-                    <span style={{ fontWeight: 700, color: overdue ? 'var(--red)' : 'var(--text)', fontSize: 13, backgroundColor: overdue ? 'rgba(255,92,124,0.1)' : 'var(--bg2)', padding: '4px 10px', borderRadius: 'var(--radius-sm)' }}>
-                      {formatCurrency(Number(r.amount || 0))}
-                    </span>
-                  </div>
-                );
-              })}
+          <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <span style={{ fontWeight: 'bold', fontSize: 14 }}>🔁 Próximas contas (7 dias)</span>
+              <Link href="/recurrences" style={{ fontSize: 12, color: '#3498db' }}>Ver todas →</Link>
             </div>
+            {upcomingRecurrences.map((r) => {
+              const overdue = r.next_date <= today;
+              return (
+                <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f5f5f5' }}>
+                  <div>
+                    <span style={{ fontSize: 14 }}>🔁 {r.name || '—'}</span>
+                    <div style={{ fontSize: 12, color: overdue ? '#e74c3c' : '#999' }}>
+                      {new Date(r.next_date + 'T12:00:00').toLocaleDateString('pt-BR')} · {daysUntil(r.next_date)}
+                    </div>
+                  </div>
+                  <span style={{ fontWeight: 'bold', color: '#e74c3c', fontSize: 14 }}>
+                    R$ {Number(r.amount || 0).toFixed(2)}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         )}
 
-        {/* Metas */}
+        {/* Metas em progresso */}
         {activeGoals.length > 0 && (
-          <div className="card animate-in" style={{ padding: '16px 20px' }}>
-            <SectionHeader title="🎯 Metas em andamento" href="/goals" />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {activeGoals.map((g) => {
-                const pct = Number(g.target_amount) > 0 ? (Number(g.current_amount) / Number(g.target_amount)) * 100 : 0;
-                return (
-                  <div key={g.id}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 5 }}>
-                      <span style={{ color: 'var(--text)', fontWeight: 600 }}>{g.type === 'shared' ? '👫' : '👤'} {g.name}</span>
-                      <span style={{ color: 'var(--text-muted)' }}>{formatCurrency(Number(g.current_amount))} / {formatCurrency(Number(g.target_amount))}</span>
-                    </div>
-                    <ProgressBar pct={pct} color="var(--blue)" />
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, textAlign: 'right' }}>{pct.toFixed(0)}% concluído</div>
-                  </div>
-                );
-              })}
+          <div style={{ border: '1px solid #ddd', borderRadius: 12, padding: 16, marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <span style={{ fontWeight: 'bold', fontSize: 14 }}>🎯 Metas em andamento</span>
+              <Link href="/goals" style={{ fontSize: 12, color: '#3498db' }}>Ver todas →</Link>
             </div>
+            {activeGoals.map((g) => {
+              const pct = Number(g.target_amount) > 0 ? (Number(g.current_amount) / Number(g.target_amount)) * 100 : 0;
+              return (
+                <div key={g.id} style={{ marginBottom: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+                    <span>{g.type === 'shared' ? '👫' : '👤'} {g.name}</span>
+                    <span style={{ color: '#666' }}>R$ {Number(g.current_amount).toFixed(0)} / R$ {Number(g.target_amount).toFixed(0)}</span>
+                  </div>
+                  <div style={{ width: '100%', height: 6, backgroundColor: '#f0f0f0', borderRadius: 10, overflow: 'hidden' }}>
+                    <div style={{ width: `${pct}%`, height: '100%', backgroundColor: '#3498db', borderRadius: 10 }} />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 
-        {/* Módulos */}
-        <div style={{ paddingTop: 4 }}>
-          <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12, fontFamily: 'var(--font-display)' }}>Módulos</p>
+        {/* Navegação rápida */}
+        <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 20 }}>
+          <p style={{ fontSize: 12, color: '#999', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 }}>Módulos</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-            {MODULES.map(m => <ModuleBtn key={m.href} {...m} />)}
+            {[
+              { href: '/transactions', icon: '💳', label: 'Gastos' },
+              { href: '/budgets', icon: '💰', label: 'Orçamento' },
+              { href: '/incomes', icon: '💵', label: 'Renda' },
+              { href: '/goals', icon: '🎯', label: 'Metas' },
+              { href: '/credit-cards', icon: '💳', label: 'Cartões' },
+              { href: '/accounts', icon: '🏦', label: 'Contas' },
+              { href: '/recurrences', icon: '🔁', label: 'Recorrências' },
+              { href: '/analytics', icon: '📊', label: 'Analytics' },
+              { href: '/financings', icon: '🏠', label: 'Financiamentos' },
+              { href: '/balances', icon: '🤝', label: 'Acerto' },
+              { href: '/categories', icon: '🏷️', label: 'Categorias' },
+              { href: '/simulator', icon: '🧮', label: 'Simulador' },
+              { href: '/setup', icon: '⚙️', label: 'Configurar' },
+            ].map(({ href, icon, label }) => (
+              <Link key={href} href={href} style={{ textDecoration: 'none' }}>
+                <div style={{
+                  padding: '12px 4px', border: '1px solid #eee', borderRadius: 10,
+                  textAlign: 'center', cursor: 'pointer', backgroundColor: 'white',
+                }}>
+                  <div style={{ fontSize: 20, marginBottom: 4 }}>{icon}</div>
+                  <div style={{ fontSize: 11, color: '#555' }}>{label}</div>
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
-
       </main>
     </>
   );

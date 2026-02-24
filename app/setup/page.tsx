@@ -206,20 +206,20 @@ export default function SetupPage() {
   // ── Shared styles ──────────────────────────────────────────
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '12px 14px', fontSize: 15,
-    borderRadius: 'var(--radius)', border: '1px solid #e0e0e0',
+    borderRadius: 10, border: '1px solid #e0e0e0',
     outline: 'none', boxSizing: 'border-box',
-    backgroundColor: 'var(--surface)', color: 'var(--text)',
+    backgroundColor: 'white', color: '#1a1a1a',
     transition: 'border-color 0.15s',
   };
 
   const labelStyle: React.CSSProperties = {
     display: 'block', fontWeight: '600', fontSize: 13,
-    color: 'var(--text2)', marginBottom: 6,
+    color: '#444', marginBottom: 6,
   };
 
   const sectionStyle: React.CSSProperties = {
-    border: '1px solid var(--border2)', borderRadius: 14, padding: '20px 22px', marginBottom: 16,
-    backgroundColor: 'var(--bg2)',
+    border: '1px solid #eee', borderRadius: 14, padding: '20px 22px', marginBottom: 16,
+    backgroundColor: '#fafafa',
   };
 
   const sectionTitle: React.CSSProperties = {
@@ -230,7 +230,7 @@ export default function SetupPage() {
   if (view === 'loading') return (
     <>
       <Header title="⚙️ Configurações" />
-      <main style={{ padding: 16 }}><p style={{ color: 'var(--text-muted)' }}>Carregando...</p></main>
+      <main style={{ padding: 16 }}><p style={{ color: '#999' }}>Carregando...</p></main>
     </>
   );
 
@@ -243,12 +243,12 @@ export default function SetupPage() {
       <main style={{ padding: 16, maxWidth: 520, margin: '0 auto', paddingBottom: 60 }}>
 
         {successMsg && (
-          <div style={{ backgroundColor: '#d4edda', border: '1px solid #b8dfc7', borderRadius: 'var(--radius)', padding: '12px 16px', marginBottom: 16, color: '#1a5e34', fontSize: 14 }}>
+          <div style={{ backgroundColor: '#d4edda', border: '1px solid #b8dfc7', borderRadius: 10, padding: '12px 16px', marginBottom: 16, color: '#1a5e34', fontSize: 14 }}>
             {successMsg}
           </div>
         )}
         {errorMsg && (
-          <div style={{ backgroundColor: '#fde8e8', border: '1px solid #f5c6cb', borderRadius: 'var(--radius)', padding: '12px 16px', marginBottom: 16, color: '#7b1a1a', fontSize: 14 }}>
+          <div style={{ backgroundColor: '#fde8e8', border: '1px solid #f5c6cb', borderRadius: 10, padding: '12px 16px', marginBottom: 16, color: '#7b1a1a', fontSize: 14 }}>
             ❌ {errorMsg}
           </div>
         )}
@@ -281,13 +281,13 @@ export default function SetupPage() {
                 placeholder="Lucas & Victória"
                 style={inputStyle}
               />
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 5 }}>
+              <div style={{ fontSize: 12, color: '#999', marginTop: 5 }}>
                 Nome do espaço financeiro, exibido no dashboard e relatórios.
               </div>
             </div>
 
             <div>
-              <label style={labelStyle}>Ship name <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(opcional)</span></label>
+              <label style={labelStyle}>Ship name <span style={{ fontWeight: 400, color: '#aaa' }}>(opcional)</span></label>
               <input
                 type="text"
                 value={shipName}
@@ -295,7 +295,7 @@ export default function SetupPage() {
                 placeholder="Lucktória ❤️, Vicucas 💕, The Rich Couple..."
                 style={inputStyle}
               />
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 5 }}>
+              <div style={{ fontSize: 12, color: '#999', marginTop: 5 }}>
                 Um apelido criativo do grupo. Aparece no topo do dashboard.
               </div>
             </div>
@@ -304,7 +304,7 @@ export default function SetupPage() {
           {/* Fechamento mensal */}
           <div style={sectionStyle}>
             <div style={sectionTitle}>📅 Fechamento mensal</div>
-            <div style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 14, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 13, color: '#666', marginBottom: 14, lineHeight: 1.5 }}>
               O fechamento salva um snapshot do mês: renda, gastos, saldo e acertos entre os membros do grupo.
             </div>
 
@@ -317,14 +317,14 @@ export default function SetupPage() {
                   style={{
                     padding: '14px 10px',
                     border: closeMode === mode ? '2px solid #3498db' : '1px solid #ddd',
-                    borderRadius: 'var(--radius)', cursor: 'pointer', textAlign: 'center',
+                    borderRadius: 10, cursor: 'pointer', textAlign: 'center',
                     backgroundColor: closeMode === mode ? '#eaf4fd' : 'white',
                     fontWeight: closeMode === mode ? 600 : 400,
                     fontSize: 14, transition: 'all 0.15s',
                   }}
                 >
                   {mode === 'manual' ? '🖐️ Manual' : '⚡ Automático'}
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3, fontWeight: 400 }}>
+                  <div style={{ fontSize: 11, color: '#888', marginTop: 3, fontWeight: 400 }}>
                     {mode === 'manual' ? 'Você decide quando fechar' : 'Fecha num dia fixo'}
                   </div>
                 </button>
@@ -344,7 +344,7 @@ export default function SetupPage() {
                     <option key={d} value={d}>Dia {d}</option>
                   ))}
                 </select>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 5 }}>
+                <div style={{ fontSize: 12, color: '#999', marginTop: 5 }}>
                   Limitado ao dia 28 para funcionar em todos os meses.
                 </div>
               </div>
@@ -358,7 +358,7 @@ export default function SetupPage() {
             style={{
               width: '100%', padding: '15px',
               backgroundColor: savingSettings ? '#95a5a6' : '#2ecc71',
-              color: 'white', border: 'none', borderRadius: 'var(--radius)',
+              color: 'white', border: 'none', borderRadius: 12,
               cursor: savingSettings ? 'not-allowed' : 'pointer',
               fontWeight: 'bold', fontSize: 16, marginBottom: 16,
               transition: 'background-color 0.15s',
@@ -371,14 +371,14 @@ export default function SetupPage() {
         {/* Código de convite */}
         <div style={sectionStyle}>
           <div style={sectionTitle}>🔑 Código de convite</div>
-          <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 12 }}>
+          <p style={{ fontSize: 13, color: '#666', marginBottom: 12 }}>
             Compartilhe com outras pessoas para que elas entrem neste espaço financeiro.
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
               flex: 1, fontSize: 26, fontWeight: 'bold', letterSpacing: 6,
               backgroundColor: '#f0f4ff', border: '2px dashed #3498db',
-              borderRadius: 'var(--radius)', padding: '12px 16px', textAlign: 'center',
+              borderRadius: 10, padding: '12px 16px', textAlign: 'center',
               fontFamily: 'monospace',
             }}>
               {household.invite_code}
@@ -386,8 +386,8 @@ export default function SetupPage() {
             <button
               onClick={() => copyCode(household.invite_code)}
               style={{
-                padding: '12px 16px', backgroundColor: 'var(--blue)', color: 'white',
-                border: 'none', borderRadius: 'var(--radius)', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                padding: '12px 16px', backgroundColor: '#3498db', color: 'white',
+                border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 600,
               }}
             >
               📋 Copiar
@@ -398,15 +398,15 @@ export default function SetupPage() {
         {/* Compartilhamento de chave cripto */}
         <div style={sectionStyle}>
           <div style={sectionTitle}>🔐 Chave do cofre</div>
-          <p style={{ fontSize: 13, color: 'var(--text3)', marginBottom: 12 }}>
+          <p style={{ fontSize: 13, color: '#666', marginBottom: 12 }}>
             Para que seu parceiro(a) veja os dados criptografados neste dispositivo, é preciso compartilhar a chave AES do cofre de forma segura.
           </p>
           <Link href="/setup-crypto" style={{ textDecoration: 'none', display: 'block' }}>
             <button
               style={{
                 width: '100%', padding: '12px 16px',
-                backgroundColor: 'var(--purple)', color: 'white',
-                border: 'none', borderRadius: 'var(--radius)', cursor: 'pointer',
+                backgroundColor: '#9b59b6', color: 'white',
+                border: 'none', borderRadius: 10, cursor: 'pointer',
                 fontSize: 14, fontWeight: 600, display: 'flex',
                 alignItems: 'center', justifyContent: 'center', gap: 8,
               }}
@@ -414,7 +414,7 @@ export default function SetupPage() {
               🔐 Compartilhar / Receber chave via QR
             </button>
           </Link>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
+          <div style={{ fontSize: 12, color: '#999', marginTop: 8 }}>
             Gera um QR code de 1 uso que expira em 10 minutos. Nunca trafega a chave em texto puro.
           </div>
         </div>
@@ -426,13 +426,13 @@ export default function SetupPage() {
             onClick={handleLeave}
             style={{
               padding: '10px 20px', backgroundColor: 'transparent',
-              color: 'var(--red)', border: '1px solid #e74c3c',
-              borderRadius: 'var(--radius)', cursor: 'pointer', fontSize: 13,
+              color: '#e74c3c', border: '1px solid #e74c3c',
+              borderRadius: 10, cursor: 'pointer', fontSize: 13,
             }}
           >
             Sair deste espaço financeiro
           </button>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
+          <div style={{ fontSize: 12, color: '#999', marginTop: 8 }}>
             Seus dados financeiros não serão apagados.
           </div>
         </div>
@@ -449,13 +449,13 @@ export default function SetupPage() {
       <Header title="⚙️ Configurações" />
       <main style={{ padding: 16, maxWidth: 480, margin: '0 auto' }}>
         <h2 style={{ marginBottom: 6 }}>👋 Bem-vindo(a)!</h2>
-        <p style={{ color: 'var(--text3)', fontSize: 14, marginBottom: 28 }}>
+        <p style={{ color: '#666', fontSize: 14, marginBottom: 28 }}>
           Você ainda não está em nenhum espaço financeiro. Crie um novo ou entre com um código de convite.
         </p>
 
         {/* Nome do usuário antes de prosseguir */}
         <div style={{ ...sectionStyle, marginBottom: 24 }}>
-          <label style={labelStyle}>Seu nome <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(opcional agora)</span></label>
+          <label style={labelStyle}>Seu nome <span style={{ fontWeight: 400, color: '#aaa' }}>(opcional agora)</span></label>
           <input
             type="text"
             value={userName}
@@ -475,7 +475,7 @@ export default function SetupPage() {
           >
             <div style={{ fontSize: 36, marginBottom: 8 }}>🏠</div>
             <div style={{ fontWeight: 'bold', marginBottom: 4 }}>Criar espaço</div>
-            <div style={{ fontSize: 12, color: 'var(--text3)' }}>Sou o primeiro(a) a entrar</div>
+            <div style={{ fontSize: 12, color: '#666' }}>Sou o primeiro(a) a entrar</div>
           </button>
 
           <button
@@ -487,7 +487,7 @@ export default function SetupPage() {
           >
             <div style={{ fontSize: 36, marginBottom: 8 }}>🔑</div>
             <div style={{ fontWeight: 'bold', marginBottom: 4 }}>Entrar com código</div>
-            <div style={{ fontSize: 12, color: 'var(--text3)' }}>Tenho um convite</div>
+            <div style={{ fontSize: 12, color: '#666' }}>Tenho um convite</div>
           </button>
         </div>
       </main>
@@ -501,11 +501,11 @@ export default function SetupPage() {
     <>
       <Header title="⚙️ Criar espaço" />
       <main style={{ padding: 16, maxWidth: 480, margin: '0 auto' }}>
-        <button onClick={() => setView('choose')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--blue)', marginBottom: 16, padding: 0, fontSize: 14 }}>
+        <button onClick={() => setView('choose')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3498db', marginBottom: 16, padding: 0, fontSize: 14 }}>
           ← Voltar
         </button>
         <h2 style={{ marginBottom: 6 }}>🏠 Criar espaço financeiro</h2>
-        <p style={{ color: 'var(--text3)', fontSize: 14, marginBottom: 24 }}>
+        <p style={{ color: '#666', fontSize: 14, marginBottom: 24 }}>
           Depois de criar, você receberá um código para compartilhar com seu parceiro(a).
         </p>
 
@@ -519,13 +519,13 @@ export default function SetupPage() {
               placeholder="Família Silva, Meu financeiro pessoal..."
               style={inputStyle}
             />
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 5 }}>
+            <div style={{ fontSize: 12, color: '#999', marginTop: 5 }}>
               Pode ser qualquer nome — você pode mudar depois nas configurações.
             </div>
           </div>
 
           <div style={{ marginBottom: 20 }}>
-            <label style={labelStyle}>PIN do cofre <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(recomendado)</span></label>
+            <label style={labelStyle}>PIN do cofre <span style={{ fontWeight: 400, color: '#aaa' }}>(recomendado)</span></label>
             <input
               type="password"
               inputMode="numeric"
@@ -534,13 +534,13 @@ export default function SetupPage() {
               placeholder="Mínimo 4 dígitos"
               style={inputStyle}
             />
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 5 }}>
+            <div style={{ fontSize: 12, color: '#999', marginTop: 5 }}>
               Protege seus dados com criptografia. Os membros deste grupo vão usar este PIN para acessar as finanças. Guarde bem — não é possível recuperá-lo.
             </div>
           </div>
 
           {errorMsg && (
-            <div style={{ color: 'var(--red)', backgroundColor: '#fde8e8', borderRadius: 'var(--radius-sm)', padding: 12, marginBottom: 14, fontSize: 14 }}>
+            <div style={{ color: '#e74c3c', backgroundColor: '#fde8e8', borderRadius: 8, padding: 12, marginBottom: 14, fontSize: 14 }}>
               ❌ {errorMsg}
             </div>
           )}
@@ -551,7 +551,7 @@ export default function SetupPage() {
             style={{
               width: '100%', padding: '14px',
               backgroundColor: loading ? '#95a5a6' : '#3498db',
-              color: 'white', border: 'none', borderRadius: 'var(--radius)',
+              color: 'white', border: 'none', borderRadius: 10,
               cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 'bold', fontSize: 16,
             }}
           >
@@ -569,11 +569,11 @@ export default function SetupPage() {
     <>
       <Header title="⚙️ Entrar com código" />
       <main style={{ padding: 16, maxWidth: 480, margin: '0 auto' }}>
-        <button onClick={() => setView('choose')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--blue)', marginBottom: 16, padding: 0, fontSize: 14 }}>
+        <button onClick={() => setView('choose')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3498db', marginBottom: 16, padding: 0, fontSize: 14 }}>
           ← Voltar
         </button>
         <h2 style={{ marginBottom: 6 }}>🔑 Entrar com código</h2>
-        <p style={{ color: 'var(--text3)', fontSize: 14, marginBottom: 24 }}>
+        <p style={{ color: '#666', fontSize: 14, marginBottom: 24 }}>
           Digite o código que seu parceiro(a) te enviou.
         </p>
 
@@ -590,12 +590,12 @@ export default function SetupPage() {
               fontFamily: 'monospace', border: '2px dashed #2ecc71', marginBottom: 8,
             }}
           />
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 20 }}>
+          <div style={{ fontSize: 12, color: '#999', marginBottom: 20 }}>
             6 caracteres, não diferencia maiúsculas/minúsculas.
           </div>
 
           {errorMsg && (
-            <div style={{ color: 'var(--red)', backgroundColor: '#fde8e8', borderRadius: 'var(--radius-sm)', padding: 12, marginBottom: 14, fontSize: 14 }}>
+            <div style={{ color: '#e74c3c', backgroundColor: '#fde8e8', borderRadius: 8, padding: 12, marginBottom: 14, fontSize: 14 }}>
               ❌ {errorMsg}
             </div>
           )}
@@ -606,7 +606,7 @@ export default function SetupPage() {
             style={{
               width: '100%', padding: '14px',
               backgroundColor: loading ? '#95a5a6' : '#2ecc71',
-              color: 'white', border: 'none', borderRadius: 'var(--radius)',
+              color: 'white', border: 'none', borderRadius: 10,
               cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 'bold', fontSize: 16,
             }}
           >

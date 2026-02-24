@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 
-const HIDDEN_PATHS = ['/', '/login', '/setup', '/onboarding'];
+const HIDDEN_PATHS = ['/', '/login', '/setup'];
 
 export default function BottomNav() {
   const pathname = usePathname();
@@ -114,8 +114,8 @@ export default function BottomNav() {
       left: 0,
       right: 0,
       height: 64,
-      backgroundColor: 'var(--surface)',
-      borderTop: '1px solid var(--border)',
+      backgroundColor: 'white',
+      borderTop: '1px solid #e5e7eb',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-around',
@@ -153,7 +153,7 @@ export default function BottomNav() {
                     height: 18,
                     borderRadius: '50%',
                     backgroundColor: '#e74c3c',
-                    border: '2px solid var(--surface)',
+                    border: '2px solid white',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -196,13 +196,13 @@ export default function BottomNav() {
                     height: 9,
                     borderRadius: '50%',
                     backgroundColor: '#e74c3c',
-                    border: '1.5px solid var(--surface)',
+                    border: '1.5px solid white',
                   }} />
                 )}
               </div>
               <span style={{
                 fontSize: 10,
-                color: isActive ? '#2ecc71' : 'var(--text-muted)',
+                color: isActive ? '#2ecc71' : '#9ca3af',
                 fontWeight: isActive ? 700 : 400,
                 letterSpacing: 0.2,
               }}>

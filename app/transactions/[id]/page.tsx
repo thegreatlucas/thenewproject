@@ -2,7 +2,6 @@
 // app/transactions/[id]/page.tsx — Detalhe + comentários em estilo chat
 
 import { useState, useEffect, useRef } from 'react';
-import { formatCurrency } from '@/lib/format';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import Header from '@/app/components/Header';
@@ -86,7 +85,7 @@ export default function TransactionDetailPage() {
       <main style={{ padding: 16, maxWidth: 580, margin: '0 auto', paddingBottom: 120 }}>
 
         {/* Card da transação */}
-        <div style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: 20, marginBottom: 24, boxShadow: 'var(--shadow)' }}>
+        <div style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 20, marginBottom: 24, boxShadow: 'var(--shadow)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 19, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
@@ -106,9 +105,9 @@ export default function TransactionDetailPage() {
               )}
             </div>
             <div style={{ textAlign: 'right', flexShrink: 0 }}>
-              <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--red)' }}>{formatCurrency(display)}</div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: '#e74c3c' }}>R$ {display.toFixed(2)}</div>
               {tx.installments_count > 1 && (
-                <div style={{ fontSize: 12, color: 'var(--orange)' }}>total R$ {Number(tx.amount).toFixed(2)}</div>
+                <div style={{ fontSize: 12, color: '#e67e22' }}>total R$ {Number(tx.amount).toFixed(2)}</div>
               )}
             </div>
           </div>
@@ -120,7 +119,7 @@ export default function TransactionDetailPage() {
         </h3>
 
         {comments.length === 0 && (
-          <div style={{ padding: 20, border: '1px dashed var(--border)', borderRadius: 'var(--radius)', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, marginBottom: 16 }}>
+          <div style={{ padding: 20, border: '1px dashed var(--border)', borderRadius: 12, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, marginBottom: 16 }}>
             Nenhum comentário ainda. Deixe uma nota! ✍️
           </div>
         )}
@@ -138,16 +137,16 @@ export default function TransactionDetailPage() {
                 {/* Balão */}
                 <div style={{ maxWidth: '72%', backgroundColor: isMe ? '#dcf8c6' : 'var(--surface)', border: `1px solid ${isMe ? '#b7e4a0' : 'var(--border)'}`, borderRadius: isMe ? '14px 14px 4px 14px' : '14px 14px 14px 4px', padding: '8px 12px', position: 'relative' }}>
                   {!isMe && (
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--blue)', marginBottom: 3 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#3498db', marginBottom: 3 }}>
                       {c.profiles?.name || 'Parceiro(a)'}
                     </div>
                   )}
-                  <div style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.4 }}>{c.content}</div>
-                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4, textAlign: 'right' }}>
+                  <div style={{ fontSize: 14, color: '#1a1a1a', lineHeight: 1.4 }}>{c.content}</div>
+                  <div style={{ fontSize: 10, color: '#888', marginTop: 4, textAlign: 'right' }}>
                     {new Date(c.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} · {new Date(c.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
                   </div>
                   {isMe && (
-                    <button onClick={() => deleteComment(c.id)} style={{ position: 'absolute', top: 4, right: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1 }} title="Remover">×</button>
+                    <button onClick={() => deleteComment(c.id)} style={{ position: 'absolute', top: 4, right: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#aaa', lineHeight: 1 }} title="Remover">×</button>
                   )}
                 </div>
               </div>

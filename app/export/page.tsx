@@ -2,7 +2,6 @@
 // app/export/page.tsx — Exportar relatório mensal (PDF via print ou CSV)
 
 import { useState, useEffect } from 'react';
-import { formatCurrency } from '@/lib/format';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Header from '@/app/components/Header';
@@ -55,7 +54,7 @@ export default function ExportPage() {
       ['── RECEITAS ──'],
       ['Nome', 'Valor (R$)', 'Frequência'],
       ...incomes.map((i: any) => [i.name, Number(i.amount).toFixed(2), i.frequency || 'mensal']),
-      ['TOTAL RECEITAS', formatCurrency(totalIncome)],
+      ['TOTAL RECEITAS', totalIncome.toFixed(2)],
       [],
       ['── DESPESAS ──'],
       ['Data', 'Descrição', 'Categoria', 'Valor (R$)', 'Divisão', 'Pagamento'],
@@ -67,7 +66,7 @@ export default function ExportPage() {
         t.split === 'shared' ? 'Compartilhado' : 'Individual',
         t.payment_method || '',
       ]),
-      ['TOTAL DESPESAS', formatCurrency(totalExpense)],
+      ['TOTAL DESPESAS', totalExpense.toFixed(2)],
       [],
       ['SALDO DO MÊS', (totalIncome - totalExpense).toFixed(2)],
     ];
@@ -128,22 +127,22 @@ footer{margin-top:32px;padding-top:12px;border-top:1px solid #eee;font-size:10px
   <div style="font-size:10px;color:#aaa;text-align:right">Gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
 </div>
 <div class="summary">
-  <div class="card"><div class="lbl">Receitas</div><div class="val green">{ormatCurrency(totalIncome)}</div></div>
-  <div class="card"><div class="lbl">Despesas</div><div class="val red">{ormatCurrency(totalExpense)}</div></div>
-  <div class="card"><div class="lbl">Saldo</div><div class="val ${saldo >= 0 ? 'green' : 'red'}">{ormatCurrency(saldo)}</div></div>
+  <div class="card"><div class="lbl">Receitas</div><div class="val green">R$ ${totalIncome.toFixed(2)}</div></div>
+  <div class="card"><div class="lbl">Despesas</div><div class="val red">R$ ${totalExpense.toFixed(2)}</div></div>
+  <div class="card"><div class="lbl">Saldo</div><div class="val ${saldo >= 0 ? 'green' : 'red'}">R$ ${saldo.toFixed(2)}</div></div>
   <div class="card"><div class="lbl">Transações</div><div class="val blue">${transactions.length}</div></div>
 </div>
 ${cats.length > 0 ? `<h2>📊 Gastos por categoria</h2><div style="margin-bottom:24px">
 ${cats.slice(0, 8).map(([cat, val]) => `<div class="bar-row">
   <div class="bar-lbl">${cat}</div>
   <div class="bar-bg"><div class="bar-fill" style="width:${totalExpense > 0 ? Math.round(val / totalExpense * 100) : 0}%"></div></div>
-  <div class="bar-val">{ormatCurrency(val)}</div>
+  <div class="bar-val">R$ ${val.toFixed(2)}</div>
 </div>`).join('')}
 </div>` : ''}
 ${incomes.length > 0 ? `<h2>📈 Receitas</h2>
 <table><tr><th>Fonte</th><th class="tr">Valor</th><th>Frequência</th></tr>
-${incomes.map((i: any) => `<tr><td>${i.name}</td><td class="tr"><b>{ormatCurrency(Number(i.amount))}</b></td><td>${i.frequency || 'mensal'}</td></tr>`).join('')}
-<tr style="background:#f9f9f9"><td><b>Total</b></td><td class="tr"><b>{ormatCurrency(totalIncome)}</b></td><td></td></tr>
+${incomes.map((i: any) => `<tr><td>${i.name}</td><td class="tr"><b>R$ ${Number(i.amount).toFixed(2)}</b></td><td>${i.frequency || 'mensal'}</td></tr>`).join('')}
+<tr style="background:#f9f9f9"><td><b>Total</b></td><td class="tr"><b>R$ ${totalIncome.toFixed(2)}</b></td><td></td></tr>
 </table>` : ''}
 <h2>💳 Despesas do período (${transactions.length})</h2>
 ${transactions.length === 0 ? '<p style="color:#888;margin-bottom:24px;font-size:12px">Nenhuma despesa registrada neste período.</p>' : `
@@ -154,11 +153,11 @@ ${transactions.map((t: any) => {
     <td>${new Date(t.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</td>
     <td>${t.description}${t.installments_count > 1 ? ` <span class="orange">(${t.installments_count}x)</span>` : ''}</td>
     <td>${t.categories?.icon || ''} ${t.categories?.name || '—'}</td>
-    <td class="tr"><b>{ormatCurrency(val)}</b></td>
+    <td class="tr"><b>R$ ${val.toFixed(2)}</b></td>
     <td><span class="tag ${t.split === 'shared' ? 'shared' : 'indv'}">${t.split === 'shared' ? '👫 Compartilhado' : '👤 Individual'}</span></td>
   </tr>`;
 }).join('')}
-<tr style="background:#f5f5f5"><td colspan="3"><b>Total</b></td><td class="tr"><b>{ormatCurrency(totalExpense)}</b></td><td></td></tr>
+<tr style="background:#f5f5f5"><td colspan="3"><b>Total</b></td><td class="tr"><b>R$ ${totalExpense.toFixed(2)}</b></td><td></td></tr>
 </table>`}
 <footer>The Rich Couple · Gerado em ${new Date().toLocaleString('pt-BR')}</footer>
 </body></html>`;
@@ -197,13 +196,13 @@ ${transactions.map((t: any) => {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={{ display: 'block', fontSize: 12, color: 'var(--text3)', marginBottom: 6 }}>Mês</label>
-              <select value={month} onChange={e => setMonth(Number(e.target.value))} style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: 14 }}>
+              <select value={month} onChange={e => setMonth(Number(e.target.value))} style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 14 }}>
                 {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
               </select>
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, color: 'var(--text3)', marginBottom: 6 }}>Ano</label>
-              <select value={year} onChange={e => setYear(Number(e.target.value))} style={{ width: '100%', padding: '9px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', fontSize: 14 }}>
+              <select value={year} onChange={e => setYear(Number(e.target.value))} style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 14 }}>
                 {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
               </select>
             </div>
@@ -219,7 +218,7 @@ ${transactions.map((t: any) => {
               ['csv', '📊', 'Excel / CSV', 'Planilha compatível com\nExcel e Google Sheets'],
             ] as const).map(([f, icon, label, desc]) => (
               <button key={f} onClick={() => setFormat(f)}
-                style={{ padding: '14px 12px', borderRadius: 'var(--radius)', border: format === f ? '2px solid var(--green)' : '1px solid var(--border)', backgroundColor: format === f ? '#f0fff5' : 'var(--surface2)', cursor: 'pointer', textAlign: 'center' }}>
+                style={{ padding: '14px 12px', borderRadius: 10, border: format === f ? '2px solid var(--green)' : '1px solid var(--border)', backgroundColor: format === f ? '#f0fff5' : 'var(--surface2)', cursor: 'pointer', textAlign: 'center' }}>
                 <div style={{ fontSize: 24, marginBottom: 4 }}>{icon}</div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 3 }}>{label}</div>
                 <div style={{ fontSize: 11, color: 'var(--text3)', whiteSpace: 'pre-line' }}>{desc}</div>
@@ -229,7 +228,7 @@ ${transactions.map((t: any) => {
         </div>
 
         <button onClick={generate} disabled={generating || !householdId}
-          style={{ width: '100%', padding: '15px', backgroundColor: generating ? 'var(--border)' : 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--radius)', cursor: generating ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 16 }}>
+          style={{ width: '100%', padding: '15px', backgroundColor: generating ? 'var(--border)' : 'var(--green)', color: 'white', border: 'none', borderRadius: 12, cursor: generating ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 16 }}>
           {generating ? '⏳ Gerando...' : `📤 Gerar ${format.toUpperCase()}`}
         </button>
 

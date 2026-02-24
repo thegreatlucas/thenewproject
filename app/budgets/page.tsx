@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { formatCurrency } from '@/lib/format';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -225,7 +224,7 @@ export default function BudgetsPage() {
   }
 
   if (loading) {
-    return <main style={{ padding: 16, color: 'var(--text-muted)' }}>Carregando...</main>;
+    return <main style={{ padding: 16 }}>Carregando...</main>;
   }
 
   const totalBudget = spending.reduce((sum, s) => sum + s.budget, 0);
@@ -236,7 +235,7 @@ export default function BudgetsPage() {
     <main style={{ padding: 16, maxWidth: 900, margin: '0 auto' }}>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ marginBottom: 8 }}>💰 Orçamento</h1>
-        <p style={{ color: 'var(--text3)', fontSize: 14 }}>Defina limites de gastos por categoria</p>
+        <p style={{ color: '#666', fontSize: 14 }}>Defina limites de gastos por categoria</p>
       </div>
 
       {/* Seletor de mês */}
@@ -249,8 +248,8 @@ export default function BudgetsPage() {
           style={{
             padding: 8,
             fontSize: 16,
-            borderRadius: 'var(--radius-sm)',
-            border: '1px solid var(--border)'
+            borderRadius: 8,
+            border: '1px solid #ddd'
           }}
         />
         <button
@@ -261,7 +260,7 @@ export default function BudgetsPage() {
             backgroundColor: showForm ? '#e74c3c' : '#2ecc71',
             color: 'white',
             border: 'none',
-            borderRadius: 'var(--radius-sm)',
+            borderRadius: 8,
             cursor: 'pointer',
             fontWeight: 'bold'
           }}
@@ -278,36 +277,36 @@ export default function BudgetsPage() {
         marginBottom: 24
       }}>
         <div style={{
-          backgroundColor: 'rgba(108,99,255,0.08)',
+          backgroundColor: '#e3f2fd',
           padding: 16,
-          borderRadius: 'var(--radius-sm)',
+          borderRadius: 8,
           textAlign: 'center'
         }}>
-          <div style={{ fontSize: 14, color: 'var(--text3)', marginBottom: 4 }}>Orçamento Total</div>
-          <div style={{ fontSize: 24, fontWeight: 'bold', color: 'var(--blue)' }}>
-            {formatCurrency(totalBudget)}
+          <div style={{ fontSize: 14, color: '#666', marginBottom: 4 }}>Orçamento Total</div>
+          <div style={{ fontSize: 24, fontWeight: 'bold', color: '#3498db' }}>
+            R$ {totalBudget.toFixed(2)}
           </div>
         </div>
         <div style={{
           backgroundColor: '#ffebee',
           padding: 16,
-          borderRadius: 'var(--radius-sm)',
+          borderRadius: 8,
           textAlign: 'center'
         }}>
-          <div style={{ fontSize: 14, color: 'var(--text3)', marginBottom: 4 }}>Gasto Total</div>
-          <div style={{ fontSize: 24, fontWeight: 'bold', color: 'var(--red)' }}>
-            {formatCurrency(totalSpent)}
+          <div style={{ fontSize: 14, color: '#666', marginBottom: 4 }}>Gasto Total</div>
+          <div style={{ fontSize: 24, fontWeight: 'bold', color: '#e74c3c' }}>
+            R$ {totalSpent.toFixed(2)}
           </div>
         </div>
         <div style={{
           backgroundColor: totalRemaining >= 0 ? '#e8f5e9' : '#ffebee',
           padding: 16,
-          borderRadius: 'var(--radius-sm)',
+          borderRadius: 8,
           textAlign: 'center'
         }}>
-          <div style={{ fontSize: 14, color: 'var(--text3)', marginBottom: 4 }}>Restante</div>
+          <div style={{ fontSize: 14, color: '#666', marginBottom: 4 }}>Restante</div>
           <div style={{ fontSize: 24, fontWeight: 'bold', color: totalRemaining >= 0 ? '#2ecc71' : '#e74c3c' }}>
-            {formatCurrency(totalRemaining)}
+            R$ {totalRemaining.toFixed(2)}
           </div>
         </div>
       </div>
@@ -317,9 +316,9 @@ export default function BudgetsPage() {
         <form
           onSubmit={handleSubmit}
           style={{
-            backgroundColor: 'var(--bg2)',
+            backgroundColor: '#f5f5f5',
             padding: 20,
-            borderRadius: 'var(--radius-sm)',
+            borderRadius: 8,
             marginBottom: 24
           }}
         >
@@ -336,8 +335,8 @@ export default function BudgetsPage() {
                 width: '100%',
                 padding: 12,
                 fontSize: 16,
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--border)'
+                borderRadius: 8,
+                border: '1px solid #ddd'
               }}
               required
             >
@@ -365,8 +364,8 @@ export default function BudgetsPage() {
                 width: '100%',
                 padding: 12,
                 fontSize: 16,
-                borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--border)'
+                borderRadius: 8,
+                border: '1px solid #ddd'
               }}
               required
             />
@@ -376,10 +375,10 @@ export default function BudgetsPage() {
             type="submit"
             style={{
               padding: '12px 24px',
-              backgroundColor: 'var(--green)',
+              backgroundColor: '#2ecc71',
               color: 'white',
               border: 'none',
-              borderRadius: 'var(--radius-sm)',
+              borderRadius: 8,
               cursor: 'pointer',
               fontWeight: 'bold'
             }}
@@ -393,7 +392,7 @@ export default function BudgetsPage() {
       <div>
         <h2>Categorias</h2>
         {spending.length === 0 ? (
-          <p style={{ textAlign: 'center', color: 'var(--text3)', padding: 32 }}>
+          <p style={{ textAlign: 'center', color: '#666', padding: 32 }}>
             Nenhum orçamento definido para este mês.
           </p>
         ) : (
@@ -401,11 +400,11 @@ export default function BudgetsPage() {
             <div
               key={item.categoryId}
               style={{
-                border: '1px solid var(--border)',
+                border: '1px solid #ddd',
                 padding: 16,
                 marginBottom: 12,
-                borderRadius: 'var(--radius-sm)',
-                backgroundColor: 'var(--surface)'
+                borderRadius: 8,
+                backgroundColor: 'white'
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
@@ -426,9 +425,8 @@ export default function BudgetsPage() {
                   </div>
                   <div>
                     <div style={{ fontWeight: 'bold', fontSize: 18 }}>{item.categoryName}</div>
-                    <div style={{ fontSize: 14, color: 'var(--text3)' }}>
-                      R$ {formatCurrency(item.spent)} de {formatCurrency(item.budget)}
-                    
+                    <div style={{ fontSize: 14, color: '#666' }}>
+                      R$ {item.spent.toFixed(2)} de R$ {item.budget.toFixed(2)}
                     </div>
                   </div>
                 </div>
@@ -439,10 +437,10 @@ export default function BudgetsPage() {
                   }}
                   style={{
                     padding: '6px 12px',
-                    backgroundColor: 'var(--red)',
+                    backgroundColor: '#e74c3c',
                     color: 'white',
                     border: 'none',
-                    borderRadius: 'var(--radius-sm)',
+                    borderRadius: 4,
                     cursor: 'pointer'
                   }}
                 >
@@ -454,8 +452,8 @@ export default function BudgetsPage() {
               <div style={{
                 width: '100%',
                 height: 24,
-                backgroundColor: 'var(--bg3)',
-                borderRadius: 'var(--radius)',
+                backgroundColor: '#f0f0f0',
+                borderRadius: 12,
                 overflow: 'hidden',
                 position: 'relative'
               }}>
@@ -486,7 +484,7 @@ export default function BudgetsPage() {
                   marginTop: 8,
                   padding: 8,
                   backgroundColor: '#ffebee',
-                  borderRadius: 'var(--radius-sm)',
+                  borderRadius: 4,
                   fontSize: 14,
                   color: '#c62828',
                   fontWeight: 'bold'
@@ -499,7 +497,7 @@ export default function BudgetsPage() {
                   marginTop: 8,
                   padding: 8,
                   backgroundColor: '#fff3cd',
-                  borderRadius: 'var(--radius-sm)',
+                  borderRadius: 4,
                   fontSize: 14,
                   color: '#856404'
                 }}>

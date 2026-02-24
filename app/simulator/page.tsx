@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { formatCurrency } from '@/lib/format';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -147,7 +146,7 @@ export default function SimulatorPage() {
       const monthInters = intermediaries.filter(inter => inter.due_date?.slice(0, 7) === monthKey);
       monthInters.forEach(inter => {
         extras.push({ label: `🏢 Intermediária — ${inter.financings?.name || 'Financiamento'}`, amount: Number(inter.amount) });
-        warnings.push(`Intermediária de ${formatCurrency(Number(inter.amount))} vence em ${new Date(inter.due_date + 'T12:00:00').toLocaleDateString('pt-BR')}`);
+        warnings.push(`Intermediária de R$ ${Number(inter.amount).toFixed(2)} vence em ${new Date(inter.due_date + 'T12:00:00').toLocaleDateString('pt-BR')}`);
       });
 
       // Faturas abertas do mês
@@ -160,7 +159,7 @@ export default function SimulatorPage() {
       const extrasTotal = extras.reduce((s, e) => s + e.amount, 0);
       const balance = activeIncome - fixedExpenses - simulatedExpense - extrasTotal;
 
-      if (balance < 0) warnings.push(`Saldo negativo de ${formatCurrency(Math.abs(balance))}`);
+      if (balance < 0) warnings.push(`Saldo negativo de R$ ${Math.abs(balance).toFixed(2)}`);
       else if (balance < activeIncome * 0.1) warnings.push(`Saldo muito apertado (menos de 10% da renda)`);
 
       months.push({
@@ -193,7 +192,7 @@ export default function SimulatorPage() {
     } else {
       setVerdict('ok');
       const minBalance = Math.min(...months.map(m => m.balance));
-      setVerdictMessage(`✅ Compra viável! Seu saldo mínimo nos próximos ${totalMonths} meses será de ${formatCurrency(minBalance)}.`);
+      setVerdictMessage(`✅ Compra viável! Seu saldo mínimo nos próximos ${totalMonths} meses será de R$ ${minBalance.toFixed(2)}.`);
     }
 
     setSimulating(false);
@@ -205,41 +204,41 @@ export default function SimulatorPage() {
     <main style={{ padding: 16, maxWidth: 800, margin: '0 auto' }}>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ marginBottom: 4 }}>🧮 Simulador Financeiro</h1>
-        <p style={{ color: 'var(--text3)', fontSize: 14 }}>Descubra se uma compra cabe no seu bolso antes de fazer</p>
+        <p style={{ color: '#666', fontSize: 14 }}>Descubra se uma compra cabe no seu bolso antes de fazer</p>
       </div>
 
       {/* Resumo financeiro atual */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 24 }}>
-        <div style={{ background: 'linear-gradient(135deg, #2ecc71, #27ae60)', padding: 16, borderRadius: 'var(--radius)', color: 'white' }}>
+        <div style={{ background: 'linear-gradient(135deg, #2ecc71, #27ae60)', padding: 16, borderRadius: 12, color: 'white' }}>
           <div style={{ fontSize: 12, opacity: 0.9 }}>Renda mensal</div>
-          <div style={{ fontSize: 20, fontWeight: 'bold' }}>{formatCurrency(activeIncome)}</div>
+          <div style={{ fontSize: 20, fontWeight: 'bold' }}>R$ {activeIncome.toFixed(2)}</div>
           <div style={{ fontSize: 11, opacity: 0.8 }}>{scope === 'personal' ? 'Pessoal' : 'Casal'}</div>
         </div>
         {activeVoucher > 0 && (
-          <div style={{ background: 'linear-gradient(135deg, #f39c12, #e67e22)', padding: 16, borderRadius: 'var(--radius)', color: 'white' }}>
+          <div style={{ background: 'linear-gradient(135deg, #f39c12, #e67e22)', padding: 16, borderRadius: 12, color: 'white' }}>
             <div style={{ fontSize: 12, opacity: 0.9 }}>VR/VA (separado)</div>
-            <div style={{ fontSize: 20, fontWeight: 'bold' }}>{formatCurrency(activeVoucher)}</div>
+            <div style={{ fontSize: 20, fontWeight: 'bold' }}>R$ {activeVoucher.toFixed(2)}</div>
             <div style={{ fontSize: 11, opacity: 0.8 }}>Não entra no cálculo</div>
           </div>
         )}
-        <div style={{ background: 'linear-gradient(135deg, #e74c3c, #c0392b)', padding: 16, borderRadius: 'var(--radius)', color: 'white' }}>
+        <div style={{ background: 'linear-gradient(135deg, #e74c3c, #c0392b)', padding: 16, borderRadius: 12, color: 'white' }}>
           <div style={{ fontSize: 12, opacity: 0.9 }}>Gastos fixos</div>
-          <div style={{ fontSize: 20, fontWeight: 'bold' }}>{formatCurrency(fixedExpenses)}</div>
+          <div style={{ fontSize: 20, fontWeight: 'bold' }}>R$ {fixedExpenses.toFixed(2)}</div>
         </div>
-        <div style={{ background: `linear-gradient(135deg, ${freeBalance >= 0 ? '#3498db, #2980b9' : '#e74c3c, #c0392b'})`, padding: 16, borderRadius: 'var(--radius)', color: 'white' }}>
+        <div style={{ background: `linear-gradient(135deg, ${freeBalance >= 0 ? '#3498db, #2980b9' : '#e74c3c, #c0392b'})`, padding: 16, borderRadius: 12, color: 'white' }}>
           <div style={{ fontSize: 12, opacity: 0.9 }}>Saldo livre</div>
-          <div style={{ fontSize: 20, fontWeight: 'bold' }}>{formatCurrency(freeBalance)}</div>
+          <div style={{ fontSize: 20, fontWeight: 'bold' }}>R$ {freeBalance.toFixed(2)}</div>
         </div>
       </div>
 
       {activeIncome === 0 && (
-        <div style={{ backgroundColor: '#fff3cd', border: '1px solid #ffc107', borderRadius: 'var(--radius-sm)', padding: 12, marginBottom: 24, fontSize: 14 }}>
-          ⚠️ Nenhuma receita mensal cadastrada. <Link href="/incomes" style={{ color: 'var(--blue)' }}>Cadastre suas receitas</Link> para o simulador funcionar corretamente.
+        <div style={{ backgroundColor: '#fff3cd', border: '1px solid #ffc107', borderRadius: 8, padding: 12, marginBottom: 24, fontSize: 14 }}>
+          ⚠️ Nenhuma receita mensal cadastrada. <Link href="/incomes" style={{ color: '#3498db' }}>Cadastre suas receitas</Link> para o simulador funcionar corretamente.
         </div>
       )}
 
       {/* Formulário */}
-      <div style={{ backgroundColor: 'var(--bg2)', padding: 20, borderRadius: 'var(--radius)', marginBottom: 24, border: '1px solid var(--border)' }}>
+      <div style={{ backgroundColor: '#f8f9fa', padding: 20, borderRadius: 12, marginBottom: 24, border: '1px solid #ddd' }}>
         <h2 style={{ marginTop: 0, marginBottom: 16 }}>🛒 O que você quer comprar?</h2>
 
         {/* Escopo */}
@@ -247,16 +246,16 @@ export default function SimulatorPage() {
           <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>Simular para:</label>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <button type="button" onClick={() => setScope('personal')}
-              style={{ padding: 12, border: scope === 'personal' ? '2px solid #3498db' : '1px solid #ddd', borderRadius: 'var(--radius-sm)', backgroundColor: scope === 'personal' ? '#e3f2fd' : 'white', cursor: 'pointer', fontWeight: scope === 'personal' ? 'bold' : 'normal' }}
+              style={{ padding: 12, border: scope === 'personal' ? '2px solid #3498db' : '1px solid #ddd', borderRadius: 8, backgroundColor: scope === 'personal' ? '#e3f2fd' : 'white', cursor: 'pointer', fontWeight: scope === 'personal' ? 'bold' : 'normal' }}
             >
               👤 Minha renda<br />
-              <span style={{ fontSize: 12, color: 'var(--text3)' }}>{formatCurrency(personalIncome)}/mês</span>
+              <span style={{ fontSize: 12, color: '#666' }}>R$ {personalIncome.toFixed(2)}/mês</span>
             </button>
             <button type="button" onClick={() => setScope('couple')}
-              style={{ padding: 12, border: scope === 'couple' ? '2px solid #3498db' : '1px solid #ddd', borderRadius: 'var(--radius-sm)', backgroundColor: scope === 'couple' ? '#e3f2fd' : 'white', cursor: 'pointer', fontWeight: scope === 'couple' ? 'bold' : 'normal' }}
+              style={{ padding: 12, border: scope === 'couple' ? '2px solid #3498db' : '1px solid #ddd', borderRadius: 8, backgroundColor: scope === 'couple' ? '#e3f2fd' : 'white', cursor: 'pointer', fontWeight: scope === 'couple' ? 'bold' : 'normal' }}
             >
               👥 Renda do casal<br />
-              <span style={{ fontSize: 12, color: 'var(--text3)' }}>{formatCurrency(coupleIncome)}/mês</span>
+              <span style={{ fontSize: 12, color: '#666' }}>R$ {coupleIncome.toFixed(2)}/mês</span>
             </button>
           </div>
         </div>
@@ -267,7 +266,7 @@ export default function SimulatorPage() {
             type="text" value={purchaseDescription}
             onChange={(e) => setPurchaseDescription(e.target.value)}
             placeholder="Ex: iPhone 15, Sofá, Viagem..."
-            style={{ width: '100%', padding: 10, fontSize: 16, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}
+            style={{ width: '100%', padding: 10, fontSize: 16, borderRadius: 8, border: '1px solid #ccc' }}
           />
         </div>
 
@@ -278,13 +277,13 @@ export default function SimulatorPage() {
               type="number" value={purchaseAmount}
               onChange={(e) => setPurchaseAmount(e.target.value)}
               placeholder="0.00" step="0.01" min="0"
-              style={{ width: '100%', padding: 10, fontSize: 16, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}
+              style={{ width: '100%', padding: 10, fontSize: 16, borderRadius: 8, border: '1px solid #ccc' }}
             />
           </div>
           <div>
             <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Projetar por:</label>
             <select value={monthsAhead} onChange={(e) => setMonthsAhead(e.target.value)}
-              style={{ width: '100%', padding: 10, fontSize: 16, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}>
+              style={{ width: '100%', padding: 10, fontSize: 16, borderRadius: 8, border: '1px solid #ccc' }}>
               <option value="3">3 meses</option>
               <option value="6">6 meses</option>
               <option value="12">12 meses</option>
@@ -297,10 +296,10 @@ export default function SimulatorPage() {
           <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>Forma de pagamento:</label>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <button type="button" onClick={() => setPurchaseType('cash')}
-              style={{ padding: 12, border: purchaseType === 'cash' ? '2px solid #2ecc71' : '1px solid #ddd', borderRadius: 'var(--radius-sm)', backgroundColor: purchaseType === 'cash' ? '#e8f8f0' : 'white', cursor: 'pointer', fontWeight: purchaseType === 'cash' ? 'bold' : 'normal' }}
+              style={{ padding: 12, border: purchaseType === 'cash' ? '2px solid #2ecc71' : '1px solid #ddd', borderRadius: 8, backgroundColor: purchaseType === 'cash' ? '#e8f8f0' : 'white', cursor: 'pointer', fontWeight: purchaseType === 'cash' ? 'bold' : 'normal' }}
             >💵 À vista</button>
             <button type="button" onClick={() => setPurchaseType('installment')}
-              style={{ padding: 12, border: purchaseType === 'installment' ? '2px solid #2ecc71' : '1px solid #ddd', borderRadius: 'var(--radius-sm)', backgroundColor: purchaseType === 'installment' ? '#e8f8f0' : 'white', cursor: 'pointer', fontWeight: purchaseType === 'installment' ? 'bold' : 'normal' }}
+              style={{ padding: 12, border: purchaseType === 'installment' ? '2px solid #2ecc71' : '1px solid #ddd', borderRadius: 8, backgroundColor: purchaseType === 'installment' ? '#e8f8f0' : 'white', cursor: 'pointer', fontWeight: purchaseType === 'installment' ? 'bold' : 'normal' }}
             >📅 Parcelado</button>
           </div>
         </div>
@@ -312,11 +311,11 @@ export default function SimulatorPage() {
               type="number" value={installments}
               onChange={(e) => setInstallments(e.target.value)}
               placeholder="Ex: 12" min="2" max="60"
-              style={{ width: '100%', padding: 10, fontSize: 16, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}
+              style={{ width: '100%', padding: 10, fontSize: 16, borderRadius: 8, border: '1px solid #ccc' }}
             />
             {purchaseAmount && installments && (
-              <div style={{ marginTop: 8, fontSize: 14, color: 'var(--text3)' }}>
-                Parcela de <strong style={{ color: 'var(--red)' }}>R$ {(parseFloat(purchaseAmount) / parseInt(installments)).toFixed(2)}</strong>/mês
+              <div style={{ marginTop: 8, fontSize: 14, color: '#666' }}>
+                Parcela de <strong style={{ color: '#e74c3c' }}>R$ {(parseFloat(purchaseAmount) / parseInt(installments)).toFixed(2)}</strong>/mês
               </div>
             )}
           </div>
@@ -327,14 +326,14 @@ export default function SimulatorPage() {
           <input
             type="month" value={startMonth}
             onChange={(e) => setStartMonth(e.target.value)}
-            style={{ width: '100%', padding: 10, fontSize: 16, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)' }}
+            style={{ width: '100%', padding: 10, fontSize: 16, borderRadius: 8, border: '1px solid #ccc' }}
           />
         </div>
 
         <button
           onClick={simulate}
           disabled={simulating || !purchaseAmount}
-          style={{ width: '100%', padding: '14px 24px', fontSize: 18, fontWeight: 'bold', backgroundColor: simulating || !purchaseAmount ? '#95a5a6' : '#3498db', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', cursor: simulating || !purchaseAmount ? 'not-allowed' : 'pointer' }}
+          style={{ width: '100%', padding: '14px 24px', fontSize: 18, fontWeight: 'bold', backgroundColor: simulating || !purchaseAmount ? '#95a5a6' : '#3498db', color: 'white', border: 'none', borderRadius: 8, cursor: simulating || !purchaseAmount ? 'not-allowed' : 'pointer' }}
         >
           {simulating ? '⏳ Simulando...' : '🧮 Simular compra'}
         </button>
@@ -343,7 +342,7 @@ export default function SimulatorPage() {
       {/* Veredito */}
       {verdict && (
         <div style={{
-          padding: 20, borderRadius: 'var(--radius)', marginBottom: 24,
+          padding: 20, borderRadius: 12, marginBottom: 24,
           backgroundColor: verdict === 'ok' ? '#e8f8f0' : verdict === 'warning' ? '#fff8e1' : '#fdecea',
           border: `2px solid ${verdict === 'ok' ? '#2ecc71' : verdict === 'warning' ? '#f39c12' : '#e74c3c'}`,
         }}>
@@ -352,8 +351,8 @@ export default function SimulatorPage() {
           </h2>
           <p style={{ margin: 0, fontSize: 16 }}>{verdictMessage}</p>
           {activeVoucher > 0 && (
-            <p style={{ margin: '8px 0 0 0', fontSize: 13, color: 'var(--text3)' }}>
-              🍽️ Nota: seu VR/VA de {formatCurrency(activeVoucher)}/mês não foi contabilizado acima pois é de uso restrito (alimentação).
+            <p style={{ margin: '8px 0 0 0', fontSize: 13, color: '#666' }}>
+              🍽️ Nota: seu VR/VA de R$ {activeVoucher.toFixed(2)}/mês não foi contabilizado acima pois é de uso restrito (alimentação).
             </p>
           )}
         </div>
@@ -366,18 +365,18 @@ export default function SimulatorPage() {
           {projection.map((month, i) => (
             <div key={i} style={{
               border: month.isNegative ? '2px solid #e74c3c' : '1px solid #ddd',
-              borderRadius: 'var(--radius)', marginBottom: 12,
+              borderRadius: 12, marginBottom: 12,
               backgroundColor: month.isNegative ? '#fdecea' : 'white',
               overflow: 'hidden',
             }}>
               <div style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontWeight: 'bold', fontSize: 16, textTransform: 'capitalize' }}>{month.month}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
-                    Renda: {formatCurrency(month.income)}
-                    {' · '}Fixos: {formatCurrency(month.fixedExpenses)}
-                    {month.simulatedExpense > 0 && ` · Compra: ${formatCurrency(month.simulatedExpense)}`}
-                    {month.extras.length > 0 && ` · Extras: ${formatCurrency(month.extras.reduce((s, e) => s + e.amount, 0))}`}
+                  <div style={{ fontSize: 12, color: '#666', marginTop: 2 }}>
+                    Renda: R$ {month.income.toFixed(2)}
+                    {' · '}Fixos: R$ {month.fixedExpenses.toFixed(2)}
+                    {month.simulatedExpense > 0 && ` · Compra: R$ ${month.simulatedExpense.toFixed(2)}`}
+                    {month.extras.length > 0 && ` · Extras: R$ ${month.extras.reduce((s, e) => s + e.amount, 0).toFixed(2)}`}
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
@@ -391,10 +390,10 @@ export default function SimulatorPage() {
               </div>
 
               {(month.extras.length > 0 || month.warnings.filter(w => !w.includes('Saldo') && !w.includes('apertado')).length > 0) && (
-                <div style={{ padding: '8px 16px 12px', borderTop: '1px solid var(--border2)', backgroundColor: month.isNegative ? '#fff5f5' : '#fafafa' }}>
+                <div style={{ padding: '8px 16px 12px', borderTop: '1px solid #eee', backgroundColor: month.isNegative ? '#fff5f5' : '#fafafa' }}>
                   {month.extras.map((extra, j) => (
-                    <div key={j} style={{ fontSize: 13, color: 'var(--orange)', marginBottom: 2 }}>
-                      ⚡ {extra.label}: {formatCurrency(extra.amount)}
+                    <div key={j} style={{ fontSize: 13, color: '#e67e22', marginBottom: 2 }}>
+                      ⚡ {extra.label}: R$ {extra.amount.toFixed(2)}
                     </div>
                   ))}
                 </div>
