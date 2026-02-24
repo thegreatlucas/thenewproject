@@ -581,6 +581,7 @@ export default function Dashboard() {
               { href: '/accounts', icon: '🏦', label: 'Contas' },
               { href: '/recurrences', icon: '🔁', label: 'Recorrências' },
               { href: '/analytics', icon: '📊', label: 'Analytics' },
+              { href: '/cashflow', icon: '📅', label: 'Fluxo de Caixa' }
               { href: '/financings', icon: '🏠', label: 'Financiamentos' },
               { href: '/balances', icon: '🤝', label: 'Acerto' },
               { href: '/categories', icon: '🏷️', label: 'Categorias' },
