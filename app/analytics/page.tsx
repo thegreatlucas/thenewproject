@@ -361,7 +361,7 @@ export default function AnalyticsPage() {
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, fontSize: 14 }}>
                       <div style={{ width: 16, height: 16, backgroundColor: cat.color, borderRadius: 4 }} />
                       <span>{cat.icon} {cat.name}</span>
-                      <span style={{ marginLeft: 'auto', fontWeight: 'bold' }}>R$ {cat.formatCurrency(value)}</span>
+                      <span style={{ marginLeft: 'auto', fontWeight: 'bold' }}>R$ {formatCurrency(cat.value)}</span>
                     </div>
                   ))}
                 </div>
