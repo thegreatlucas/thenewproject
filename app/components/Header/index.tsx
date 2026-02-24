@@ -54,14 +54,10 @@ export default function Header({
     >
       {/* Mobile Header (até 768px) */}
       <div
+        className="mobile-header"
         style={{
           display: 'none',
-          '@media (max-width: 768px)': {
-            display: 'flex',
-          },
         }}
-        className="mobile-header"
-      >
         <style>{`
           @media (max-width: 768px) {
             .mobile-header {
@@ -289,18 +285,14 @@ export default function Header({
 
       {/* Desktop Header (768px+) */}
       <div
+        className="desktop-header"
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '16px 24px',
           gap: 16,
-          '@media (max-width: 768px)': {
-            display: 'none',
-          },
         }}
-        className="desktop-header"
-      >
         <style>{`
           @media (max-width: 768px) {
             .desktop-header {
