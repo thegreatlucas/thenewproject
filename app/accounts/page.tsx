@@ -1,5 +1,6 @@
 'use client';
 
+import { formatCurrency } from '@/lib/format';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
@@ -176,12 +177,12 @@ export default function AccountsPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 24 }}>
         <div style={{ background: 'linear-gradient(135deg, #2ecc71, #27ae60)', padding: 16, borderRadius: 12, color: 'white' }}>
           <div style={{ fontSize: 12, opacity: 0.9 }}>Saldo total (dinheiro)</div>
-          <div style={{ fontSize: 22, fontWeight: 'bold' }}>R$ {totalCash.toFixed(2)}</div>
+          <div style={{ fontSize: 22, fontWeight: 'bold' }}>{formatCurrency(totalCash)}</div>
         </div>
         {totalVoucher > 0 && (
           <div style={{ background: 'linear-gradient(135deg, #f39c12, #e67e22)', padding: 16, borderRadius: 12, color: 'white' }}>
             <div style={{ fontSize: 12, opacity: 0.9 }}>Saldo VR/VA</div>
-            <div style={{ fontSize: 22, fontWeight: 'bold' }}>R$ {totalVoucher.toFixed(2)}</div>
+            <div style={{ fontSize: 22, fontWeight: 'bold' }}>{formatCurrency(totalVoucher)}</div>
             <div style={{ fontSize: 11, opacity: 0.8 }}>Uso restrito alimentação</div>
           </div>
         )}
@@ -269,7 +270,7 @@ export default function AccountsPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontWeight: 'bold', fontSize: 18, color: getBalanceColor(balance, acc.type) }}>
-                      R$ {balance.toFixed(2)}
+                      R$ {formatCurrency(balance)}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>saldo calculado</div>
                   </div>
@@ -299,7 +300,7 @@ export default function AccountsPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontWeight: 'bold', fontSize: 18, color: balance < 0 ? '#e74c3c' : '#f39c12' }}>
-                      R$ {balance.toFixed(2)}
+                      R$ {formatCurrency(balance)}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>saldo calculado</div>
                   </div>
