@@ -1,138 +1,177 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabaseClient'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Loader2, LogIn, UserPlus, CheckCircle2, AlertCircle, ShieldCheck } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [accountDeleted, setAccountDeleted] = useState(false);
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin')
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [successMsg, setSuccessMsg] = useState<string | null>(null)
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [accountDeleted, setAccountDeleted] = useState(false)
 
   useEffect(() => {
     if (searchParams.get('deleted') === 'true') {
-      setAccountDeleted(true);
+      setAccountDeleted(true)
     }
-  }, [searchParams]);
+  }, [searchParams])
 
   async function handleSignUp(e: React.FormEvent) {
-    e.preventDefault();
-    setErrorMsg(null);
-    setSuccessMsg(null);
-    setLoading(true);
+    e.preventDefault()
+    setErrorMsg(null)
+    setSuccessMsg(null)
+    setLoading(true)
 
-    const { error } = await supabase.auth.signUp({ email, password });
-    setLoading(false);
+    const { error } = await supabase.auth.signUp({ email, password })
+    setLoading(false)
 
-    if (error) { setErrorMsg(error.message); return; }
-    setSuccessMsg('Cadastro realizado! Verifique seu e-mail para confirmar a conta, depois faça login.');
+    if (error) { setErrorMsg(error.message); return }
+    setSuccessMsg('Cadastro realizado! Verifique seu e-mail para confirmar a conta, depois faca login.')
   }
 
   async function handleSignIn(e: React.FormEvent) {
-    e.preventDefault();
-    setErrorMsg(null);
-    setSuccessMsg(null);
-    setLoading(true);
+    e.preventDefault()
+    setErrorMsg(null)
+    setSuccessMsg(null)
+    setLoading(true)
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    setLoading(false)
 
-    if (error) { setErrorMsg('E-mail ou senha incorretos.'); return; }
-
-    // Após login, deixa o contexto de Workspaces decidir se vai para dashboard ou setup
-    router.push('/dashboard');
+    if (error) { setErrorMsg('E-mail ou senha incorretos.'); return }
+    router.push('/dashboard')
   }
 
   return (
-    <main style={{ padding: 16, maxWidth: 400, margin: '0 auto', paddingTop: 48 }}>
-      <h1 style={{ marginBottom: 4 }}>💰 Espaços Financeiros</h1>
-      <p style={{ color: '#666', marginBottom: 32, fontSize: 14 }}>
-        Organize suas finanças em workspaces para uso individual, casal ou família.
-      </p>
-
-      {/* Toggle */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', border: '1px solid #ddd', borderRadius: 8, marginBottom: 24, overflow: 'hidden' }}>
-        <button
-          onClick={() => { setMode('signin'); setErrorMsg(null); setSuccessMsg(null); }}
-          style={{ padding: '12px', border: 'none', cursor: 'pointer', fontWeight: mode === 'signin' ? 'bold' : 'normal', backgroundColor: mode === 'signin' ? '#3498db' : 'white', color: mode === 'signin' ? 'white' : '#333' }}
-        >
-          Entrar
-        </button>
-        <button
-          onClick={() => { setMode('signup'); setErrorMsg(null); setSuccessMsg(null); }}
-          style={{ padding: '12px', border: 'none', cursor: 'pointer', fontWeight: mode === 'signup' ? 'bold' : 'normal', backgroundColor: mode === 'signup' ? '#3498db' : 'white', color: mode === 'signup' ? 'white' : '#333' }}
-        >
-          Cadastrar
-        </button>
-      </div>
-
-      <form onSubmit={mode === 'signin' ? handleSignIn : handleSignUp}>
-        <div style={{ marginBottom: 16 }}>
-          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 6 }}>E-mail:</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="seu@email.com"
-            required
-            style={{ width: '100%', padding: 12, fontSize: 15, borderRadius: 8, border: '1px solid #ddd' }}
-          />
+    <main className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="w-full max-w-sm animate-fade-in">
+        {/* Hero */}
+        <div className="mb-8 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground text-2xl font-black">
+            {'R$'}
+          </div>
+          <h1 className="text-2xl font-bold text-foreground text-balance">
+            The Rich Couple
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Organize suas financas em workspaces para uso individual, casal ou familia.
+          </p>
         </div>
 
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 6 }}>Senha:</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Mínimo 6 caracteres"
-            required
-            minLength={6}
-            style={{ width: '100%', padding: 12, fontSize: 15, borderRadius: 8, border: '1px solid #ddd' }}
-          />
-        </div>
-
-
-        {accountDeleted && (
-          <div style={{
-            backgroundColor: '#d4edda', border: '1px solid #b8dfc7',
-            borderRadius: 12, padding: '16px 20px', marginBottom: 24,
-            color: '#1a5e34', fontSize: 14, lineHeight: 1.6,
-          }}>
-            <div style={{ fontWeight: 700, marginBottom: 4 }}>✅ Conta excluída com sucesso</div>
-            <div>
-              Em conformidade com a <strong>LGPD (Art. 18, VI)</strong>, todos os seus dados
-              pessoais foram eliminados permanentemente dos nossos servidores.
+        <Card>
+          <CardHeader className="pb-4">
+            {/* Mode toggle */}
+            <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1">
+              <button
+                onClick={() => { setMode('signin'); setErrorMsg(null); setSuccessMsg(null) }}
+                className={cn(
+                  'rounded-md px-3 py-2 text-sm font-medium transition-all',
+                  mode === 'signin'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                Entrar
+              </button>
+              <button
+                onClick={() => { setMode('signup'); setErrorMsg(null); setSuccessMsg(null) }}
+                className={cn(
+                  'rounded-md px-3 py-2 text-sm font-medium transition-all',
+                  mode === 'signup'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                Cadastrar
+              </button>
             </div>
-          </div>
-        )}
+          </CardHeader>
 
-        {errorMsg && (
-          <div style={{ color: '#e74c3c', backgroundColor: '#fde8e8', border: '1px solid #f5c6cb', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 14 }}>
-            ❌ {errorMsg}
-          </div>
-        )}
+          <CardContent>
+            <form onSubmit={mode === 'signin' ? handleSignIn : handleSignUp} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="email">E-mail</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="seu@email.com"
+                  required
+                  autoComplete="email"
+                />
+              </div>
 
-        {successMsg && (
-          <div style={{ color: '#155724', backgroundColor: '#d4edda', border: '1px solid #c3e6cb', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 14 }}>
-            ✅ {successMsg}
-          </div>
-        )}
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="password">Senha</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Minimo 6 caracteres"
+                  required
+                  minLength={6}
+                  autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                />
+              </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{ width: '100%', padding: '14px', backgroundColor: loading ? '#95a5a6' : '#3498db', color: 'white', border: 'none', borderRadius: 8, cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 'bold', fontSize: 16 }}
-        >
-          {loading ? 'Aguarde...' : mode === 'signin' ? '🔐 Entrar' : '✅ Criar conta'}
-        </button>
-      </form>
+              {accountDeleted && (
+                <div className="flex items-start gap-3 rounded-lg border border-accent/30 bg-accent/10 p-4 text-sm">
+                  <ShieldCheck className="h-5 w-5 text-accent shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold text-foreground">Conta excluida com sucesso</p>
+                    <p className="mt-1 text-muted-foreground leading-relaxed">
+                      Em conformidade com a LGPD (Art. 18, VI), todos os seus dados pessoais foram eliminados permanentemente.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {errorMsg && (
+                <div className="flex items-center gap-2.5 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  {errorMsg}
+                </div>
+              )}
+
+              {successMsg && (
+                <div className="flex items-center gap-2.5 rounded-lg border border-accent/30 bg-accent/10 p-3 text-sm text-accent">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                  {successMsg}
+                </div>
+              )}
+
+              <Button type="submit" disabled={loading} className="w-full h-11 text-base font-semibold">
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : mode === 'signin' ? (
+                  <>
+                    <LogIn className="h-4 w-4" />
+                    Entrar
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-4 w-4" />
+                    Criar conta
+                  </>
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </main>
-  );
+  )
 }

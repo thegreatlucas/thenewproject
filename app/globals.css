@@ -2,246 +2,293 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─────────────────────────────────────────
-   CSS Custom Properties — Light & Dark Mode
-   ───────────────────────────────────────── */
-:root {
-  color-scheme: light;
+@layer base {
+  /* ═══════════════════════════════════════
+     GenZ Light (default)
+     ═══════════════════════════════════════ */
+  :root {
+    color-scheme: light;
 
-  --bg:       #ffffff;
-  --bg2:      #f8f9fa;
-  --bg3:      #f0f0f0;
-  --surface:  #ffffff;
-  --surface2: #f5f5f5;
-  --border:   #e5e7eb;
-  --border2:  #eeeeee;
-  --text:     #1a1a1a;
-  --text2:    #444444;
-  --text3:    #666666;
-  --text-muted: #999999;
-  --shadow:   0 2px 8px rgba(0,0,0,0.08);
+    /* Shadcn semantic tokens */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 9%;
+    --primary: 339 90% 51%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 160 84% 39%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 339 90% 51%;
+    --radius: 1rem;
+    --chart-1: 339 90% 51%;
+    --chart-2: 160 84% 39%;
+    --chart-3: 204 70% 53%;
+    --chart-4: 30 80% 52%;
+    --chart-5: 270 50% 60%;
 
-  /* Brand colors — inalteráveis */
-  --green:  #2ecc71;
-  --green2: #27ae60;
-  --red:    #e74c3c;
-  --blue:   #3498db;
-  --orange: #e67e22;
-  --purple: #9b59b6;
+    /* App custom tokens */
+    --bg: #ffffff;
+    --bg2: #f8f9fa;
+    --bg3: #f0f0f0;
+    --surface: #ffffff;
+    --surface2: #f5f5f5;
+    --surface-glass: rgba(255, 255, 255, 0.7);
+    --text-primary: #1a1a1a;
+    --text-secondary: #444444;
+    --text-tertiary: #666666;
+    --text-muted-custom: #999999;
+    --shadow-custom: 0 2px 12px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.08);
+
+    /* Brand colors */
+    --green: #2ecc71;
+    --green2: #27ae60;
+    --red: #e74c3c;
+    --blue: #3498db;
+    --orange: #e67e22;
+    --purple: #9b59b6;
+
+    /* Theme-specific */
+    --card-radius: 1rem;
+    --card-border-width: 1px;
+    --card-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    --btn-radius: 0.75rem;
+    --input-radius: 0.75rem;
+    --heading-weight: 700;
+    --heading-transform: none;
+    --heading-tracking: -0.02em;
+  }
+
+  /* ═══════════════════════════════════════
+     GenZ Dark
+     ═══════════════════════════════════════ */
+  .dark {
+    color-scheme: dark;
+
+    --background: 0 0% 5%;
+    --foreground: 0 0% 95%;
+    --card: 0 0% 8%;
+    --card-foreground: 0 0% 95%;
+    --popover: 0 0% 8%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 339 90% 56%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 14%;
+    --secondary-foreground: 0 0% 95%;
+    --muted: 0 0% 14%;
+    --muted-foreground: 0 0% 55%;
+    --accent: 160 84% 39%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 339 90% 56%;
+    --chart-1: 339 90% 56%;
+    --chart-2: 160 84% 45%;
+    --chart-3: 204 70% 58%;
+    --chart-4: 30 80% 55%;
+    --chart-5: 270 50% 65%;
+
+    --bg: #0d0d0d;
+    --bg2: #141414;
+    --bg3: #1a1a1a;
+    --surface: #151515;
+    --surface2: #1e1e1e;
+    --surface-glass: rgba(21, 21, 21, 0.7);
+    --text-primary: #f0f0f0;
+    --text-secondary: #cccccc;
+    --text-tertiary: #999999;
+    --text-muted-custom: #555555;
+    --shadow-custom: 0 2px 12px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.5);
+
+    --card-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  /* ═══════════════════════════════════════
+     Brutalista Light
+     ═══════════════════════════════════════ */
+  .brutal {
+    --background: 60 9% 98%;
+    --foreground: 0 0% 4%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 4%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 4%;
+    --primary: 0 0% 4%;
+    --primary-foreground: 48 96% 53%;
+    --secondary: 48 96% 53%;
+    --secondary-foreground: 0 0% 4%;
+    --muted: 60 5% 93%;
+    --muted-foreground: 0 0% 35%;
+    --accent: 48 96% 53%;
+    --accent-foreground: 0 0% 4%;
+    --destructive: 0 84% 52%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 4%;
+    --input: 0 0% 85%;
+    --ring: 0 0% 4%;
+    --radius: 0.125rem;
+    --chart-1: 0 84% 52%;
+    --chart-2: 48 96% 53%;
+    --chart-3: 204 70% 53%;
+    --chart-4: 0 0% 4%;
+    --chart-5: 160 84% 39%;
+
+    --bg: #fafaf5;
+    --bg2: #f5f5f0;
+    --bg3: #ebebeb;
+    --surface: #ffffff;
+    --surface2: #f5f5f0;
+    --surface-glass: rgba(255, 255, 255, 1);
+    --text-primary: #0a0a0a;
+    --text-secondary: #222222;
+    --text-tertiary: #444444;
+    --text-muted-custom: #888888;
+    --shadow-custom: 4px 4px 0px #0a0a0a;
+    --shadow-lg: 6px 6px 0px #0a0a0a;
+
+    --card-radius: 0.125rem;
+    --card-border-width: 2px;
+    --card-shadow: 4px 4px 0px #0a0a0a;
+    --btn-radius: 0.125rem;
+    --input-radius: 0.125rem;
+    --heading-weight: 900;
+    --heading-transform: uppercase;
+    --heading-tracking: -0.04em;
+  }
+
+  /* ═══════════════════════════════════════
+     Brutalista Dark
+     ═══════════════════════════════════════ */
+  .brutal.dark {
+    --background: 0 0% 4%;
+    --foreground: 60 9% 98%;
+    --card: 0 0% 8%;
+    --card-foreground: 60 9% 98%;
+    --popover: 0 0% 8%;
+    --popover-foreground: 60 9% 98%;
+    --primary: 48 96% 53%;
+    --primary-foreground: 0 0% 4%;
+    --secondary: 0 0% 18%;
+    --secondary-foreground: 60 9% 98%;
+    --muted: 0 0% 14%;
+    --muted-foreground: 0 0% 55%;
+    --accent: 48 96% 53%;
+    --accent-foreground: 0 0% 4%;
+    --destructive: 0 84% 52%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 60 9% 98%;
+    --input: 0 0% 22%;
+    --ring: 48 96% 53%;
+    --chart-1: 0 84% 52%;
+    --chart-2: 48 96% 53%;
+    --chart-3: 204 70% 58%;
+    --chart-4: 60 9% 98%;
+    --chart-5: 160 84% 45%;
+
+    --bg: #0a0a0a;
+    --bg2: #111111;
+    --bg3: #1a1a1a;
+    --surface: #141414;
+    --surface2: #1e1e1e;
+    --surface-glass: rgba(20, 20, 20, 1);
+    --text-primary: #fafaf5;
+    --text-secondary: #d0d0d0;
+    --text-tertiary: #999999;
+    --text-muted-custom: #555555;
+    --shadow-custom: 4px 4px 0px #fafaf5;
+    --shadow-lg: 6px 6px 0px #fafaf5;
+
+    --card-shadow: 4px 4px 0px rgba(250, 250, 245, 0.3);
+  }
 }
 
-[data-theme='dark'] {
-  color-scheme: dark;
-
-  --bg:       #0f0f0f;
-  --bg2:      #141414;
-  --bg3:      #1a1a1a;
-  --surface:  #161616;
-  --surface2: #1e1e1e;
-  --border:   #2a2a2a;
-  --border2:  #333333;
-  --text:     #f0f0f0;
-  --text2:    #cccccc;
-  --text3:    #999999;
-  --text-muted: #555555;
-  --shadow:   0 2px 8px rgba(0,0,0,0.5);
+/* ═══════════════════════════════════════
+   Base styles
+   ═══════════════════════════════════════ */
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: var(--heading-weight);
+    text-transform: var(--heading-transform);
+    letter-spacing: var(--heading-tracking);
+  }
 }
 
-/* ─── Base ─────────────────────────────── */
-html, body {
-  background-color: var(--bg);
-  color: var(--text);
-  transition: background-color 0.2s ease, color 0.2s ease;
+/* ═══════════════════════════════════════
+   Theme utilities
+   ═══════════════════════════════════════ */
+@layer utilities {
+  .glass {
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    background-color: var(--surface-glass);
+  }
+
+  .brutal .glass {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background-color: var(--surface);
+  }
+
+  .theme-card {
+    border-radius: var(--card-radius);
+    border-width: var(--card-border-width);
+    box-shadow: var(--card-shadow);
+  }
+
+  .theme-shadow {
+    box-shadow: var(--shadow-custom);
+  }
+
+  .theme-shadow-lg {
+    box-shadow: var(--shadow-lg);
+  }
 }
 
-main {
-  background-color: var(--bg);
-  min-height: 100vh;
-}
-
-/* ─── Inputs ────────────────────────────── */
-input,
-select,
-textarea {
-  background-color: var(--surface2) !important;
-  color: var(--text) !important;
-  border-color: var(--border) !important;
-  -webkit-text-fill-color: var(--text) !important;
-}
-
-input::placeholder,
-select::placeholder,
-textarea::placeholder {
-  color: var(--text-muted) !important;
-  -webkit-text-fill-color: var(--text-muted) !important;
-}
-
-/* Autofill no Chrome — dark mode */
-[data-theme='dark'] input:-webkit-autofill,
-[data-theme='dark'] input:-webkit-autofill:hover,
-[data-theme='dark'] input:-webkit-autofill:focus {
+/* ═══════════════════════════════════════
+   Autofill overrides
+   ═══════════════════════════════════════ */
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus {
   -webkit-text-fill-color: #f0f0f0 !important;
-  -webkit-box-shadow: 0 0 0px 1000px #1e1e1e inset !important;
+  -webkit-box-shadow: 0 0 0px 1000px hsl(var(--card)) inset !important;
 }
 
-/* Autofill no Chrome — light mode */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
   -webkit-text-fill-color: #1a1a1a !important;
-  -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
-}
-/* ─── Cards e containers ────────────────── */
-/* Garante que divs com background branco hardcoded respeitem o tema */
-[data-theme='dark'] .card-white {
-  background-color: var(--surface) !important;
-  color: var(--text) !important;
+  -webkit-box-shadow: 0 0 0px 1000px hsl(var(--card)) inset !important;
 }
 
-/* ─── Botões ────────────────────────────── */
-button {
-  color: inherit;
+/* ═══════════════════════════════════════
+   Scrollbar
+   ═══════════════════════════════════════ */
+.dark ::-webkit-scrollbar {
+  background: hsl(var(--background));
 }
-
-/* ─── Links ─────────────────────────────── */
-a {
-  color: inherit;
-}
-
-/* ─── Scrollbar dark mode ───────────────── */
-[data-theme='dark'] ::-webkit-scrollbar {
-  background: var(--bg2);
-}
-[data-theme='dark'] ::-webkit-scrollbar-thumb {
-  background: var(--border2);
+.dark ::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
   border-radius: 4px;
-}
-
-/* ─── Modal overlays ────────────────────── */
-[data-theme='dark'] .modal-content {
-  background-color: var(--surface) !important;
-  color: var(--text) !important;
-}@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* ─────────────────────────────────────────
-   CSS Custom Properties — Light & Dark Mode
-   ───────────────────────────────────────── */
-:root {
-  color-scheme: light;
-
-  --bg:       #ffffff;
-  --bg2:      #f8f9fa;
-  --bg3:      #f0f0f0;
-  --surface:  #ffffff;
-  --surface2: #f5f5f5;
-  --border:   #e5e7eb;
-  --border2:  #eeeeee;
-  --text:     #1a1a1a;
-  --text2:    #444444;
-  --text3:    #666666;
-  --text-muted: #999999;
-  --shadow:   0 2px 8px rgba(0,0,0,0.08);
-
-  /* Brand colors — inalteráveis */
-  --green:  #2ecc71;
-  --green2: #27ae60;
-  --red:    #e74c3c;
-  --blue:   #3498db;
-  --orange: #e67e22;
-  --purple: #9b59b6;
-}
-
-[data-theme='dark'] {
-  color-scheme: dark;
-
-  --bg:       #0f0f0f;
-  --bg2:      #141414;
-  --bg3:      #1a1a1a;
-  --surface:  #161616;
-  --surface2: #1e1e1e;
-  --border:   #2a2a2a;
-  --border2:  #333333;
-  --text:     #f0f0f0;
-  --text2:    #cccccc;
-  --text3:    #999999;
-  --text-muted: #555555;
-  --shadow:   0 2px 8px rgba(0,0,0,0.5);
-}
-
-/* ─── Base ─────────────────────────────── */
-html, body {
-  background-color: var(--bg);
-  color: var(--text);
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-main {
-  background-color: var(--bg);
-  min-height: 100vh;
-}
-
-/* ─── Inputs ────────────────────────────── */
-input,
-select,
-textarea {
-  background-color: var(--surface2) !important;
-  color: var(--text) !important;
-  border-color: var(--border) !important;
-  -webkit-text-fill-color: var(--text) !important;
-}
-
-input::placeholder,
-select::placeholder,
-textarea::placeholder {
-  color: var(--text-muted) !important;
-  -webkit-text-fill-color: var(--text-muted) !important;
-}
-
-/* Autofill no Chrome — dark mode */
-[data-theme='dark'] input:-webkit-autofill,
-[data-theme='dark'] input:-webkit-autofill:hover,
-[data-theme='dark'] input:-webkit-autofill:focus {
-  -webkit-text-fill-color: #f0f0f0 !important;
-  -webkit-box-shadow: 0 0 0px 1000px #1e1e1e inset !important;
-}
-
-/* Autofill no Chrome — light mode */
-input:-webkit-autofill,
-input:-webkit-autofill:hover,
-input:-webkit-autofill:focus {
-  -webkit-text-fill-color: #1a1a1a !important;
-  -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
-}
-/* ─── Cards e containers ────────────────── */
-/* Garante que divs com background branco hardcoded respeitem o tema */
-[data-theme='dark'] .card-white {
-  background-color: var(--surface) !important;
-  color: var(--text) !important;
-}
-
-/* ─── Botões ────────────────────────────── */
-button {
-  color: inherit;
-}
-
-/* ─── Links ─────────────────────────────── */
-a {
-  color: inherit;
-}
-
-/* ─── Scrollbar dark mode ───────────────── */
-[data-theme='dark'] ::-webkit-scrollbar {
-  background: var(--bg2);
-}
-[data-theme='dark'] ::-webkit-scrollbar-thumb {
-  background: var(--border2);
-  border-radius: 4px;
-}
-
-/* ─── Modal overlays ────────────────────── */
-[data-theme='dark'] .modal-content {
-  background-color: var(--surface) !important;
-  color: var(--text) !important;
 }

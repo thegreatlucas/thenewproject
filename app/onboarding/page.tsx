@@ -1,93 +1,85 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
-import { useRouter } from 'next/navigation';
-import { formatCurrency } from '@/lib/format';
+import { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabaseClient'
+import { useRouter } from 'next/navigation'
+import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Progress } from '@/components/ui/progress'
+import { Badge } from '@/components/ui/badge'
+import { Loader2, ChevronRight, ChevronLeft, Check, Plus, X, Rocket, Wallet, Landmark, RotateCcw } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 const INCOME_TYPES = [
-  { value: 'salary',     label: '💼 Salário' },
-  { value: 'freelance',  label: '💻 Freelance' },
-  { value: 'bonus',      label: '🎯 Bônus' },
-  { value: 'vr',         label: '🍽️ Vale Refeição' },
-  { value: 'va',         label: '🛒 Vale Alimentação' },
-  { value: 'investment', label: '📈 Rendimento' },
-  { value: 'other',      label: '❓ Outro' },
-];
+  { value: 'salary', label: 'Salario' },
+  { value: 'freelance', label: 'Freelance' },
+  { value: 'bonus', label: 'Bonus' },
+  { value: 'vr', label: 'Vale Refeicao' },
+  { value: 'va', label: 'Vale Alimentacao' },
+  { value: 'investment', label: 'Rendimento' },
+  { value: 'other', label: 'Outro' },
+]
 
 const ACCOUNT_TYPES = [
-  { value: 'checking',     label: '🏦 Conta Corrente' },
-  { value: 'savings',      label: '💰 Poupança' },
-  { value: 'cash',         label: '💵 Dinheiro' },
-  { value: 'meal_voucher', label: '🍽️ Vale Refeição' },
-  { value: 'food_voucher', label: '🛒 Vale Alimentação' },
-  { value: 'investment',   label: '📈 Investimento' },
-  { value: 'other',        label: '❓ Outro' },
-];
+  { value: 'checking', label: 'Conta Corrente' },
+  { value: 'savings', label: 'Poupanca' },
+  { value: 'cash', label: 'Dinheiro' },
+  { value: 'meal_voucher', label: 'Vale Refeicao' },
+  { value: 'food_voucher', label: 'Vale Alimentacao' },
+  { value: 'investment', label: 'Investimento' },
+  { value: 'other', label: 'Outro' },
+]
 
 const RECURRENCE_SUGGESTIONS = [
-  { name: 'Netflix',   amount: '' },
-  { name: 'Spotify',   amount: '' },
-  { name: 'Internet',  amount: '' },
-  { name: 'Academia',  amount: '' },
-  { name: 'Aluguel',   amount: '' },
-];
+  { name: 'Netflix', amount: '' },
+  { name: 'Spotify', amount: '' },
+  { name: 'Internet', amount: '' },
+  { name: 'Academia', amount: '' },
+  { name: 'Aluguel', amount: '' },
+]
 
 export default function OnboardingPage() {
-  const [step, setStep] = useState(1);
-  const [householdId, setHouseholdId] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [userName, setUserName] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [initLoading, setInitLoading] = useState(true);
-  const router = useRouter();
+  const [step, setStep] = useState(1)
+  const [householdId, setHouseholdId] = useState<string | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
+  const [userName, setUserName] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [initLoading, setInitLoading] = useState(true)
+  const router = useRouter()
 
-  // Step 1 — Renda
-  const [incomes, setIncomes] = useState([
-    { description: '', amount: '', type: 'salary' },
-  ]);
+  const [incomes, setIncomes] = useState([{ description: '', amount: '', type: 'salary' }])
+  const [accounts, setAccounts] = useState([{ name: '', type: 'checking' }])
+  const [recurrences, setRecurrences] = useState([{ name: '', amount: '', due_day: '1' }])
 
-  // Step 2 — Contas
-  const [accounts, setAccounts] = useState([
-    { name: '', type: 'checking' },
-  ]);
-
-  // Step 3 — Recorrências
-  const [recurrences, setRecurrences] = useState([
-    { name: '', amount: '', due_day: '1' },
-  ]);
-
-  useEffect(() => { init(); }, []);
+  useEffect(() => { init() }, [])
 
   async function init() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push('/login'); return; }
-    setUserId(user.id);
-    setUserName(user.user_metadata?.name || user.email?.split('@')[0] || '');
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { router.push('/login'); return }
+    setUserId(user.id)
+    setUserName(user.user_metadata?.name || user.email?.split('@')[0] || '')
 
     const { data: members } = await supabase
       .from('household_members')
       .select('household_id')
       .eq('user_id', user.id)
-      .limit(1);
-    const member = members?.[0] ?? null;
+      .limit(1)
+    const member = members?.[0] ?? null
 
-    if (!member) { router.push('/setup'); return; }
-    setHouseholdId(member.household_id);
-    setInitLoading(false);
+    if (!member) { router.push('/setup'); return }
+    setHouseholdId(member.household_id)
+    setInitLoading(false)
   }
 
-  // ── Step 1: Save incomes ──────────────────────────────────
   async function handleSaveIncomes() {
-    if (!householdId || !userId) return;
-    setLoading(true);
-
-    const validIncomes = incomes.filter(i => i.description.trim() && parseFloat(i.amount) > 0);
-
+    if (!householdId || !userId) return
+    setLoading(true)
+    const validIncomes = incomes.filter(i => i.description.trim() && parseFloat(i.amount) > 0)
     if (validIncomes.length > 0) {
-      const now = new Date();
-      const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-
+      const now = new Date()
+      const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
       await supabase.from('incomes').insert(
         validIncomes.map(i => ({
           household_id: householdId,
@@ -98,20 +90,16 @@ export default function OnboardingPage() {
           recurrence: 'monthly',
           month,
         }))
-      );
+      )
     }
-
-    setLoading(false);
-    setStep(2);
+    setLoading(false)
+    setStep(2)
   }
 
-  // ── Step 2: Save accounts ──────────────────────────────────
   async function handleSaveAccounts() {
-    if (!householdId || !userId) return;
-    setLoading(true);
-
-    const validAccounts = accounts.filter(a => a.name.trim());
-
+    if (!householdId || !userId) return
+    setLoading(true)
+    const validAccounts = accounts.filter(a => a.name.trim())
     if (validAccounts.length > 0) {
       await supabase.from('accounts').insert(
         validAccounts.map(a => ({
@@ -120,28 +108,22 @@ export default function OnboardingPage() {
           name: a.name.trim(),
           type: a.type,
         }))
-      );
+      )
     }
-
-    setLoading(false);
-    setStep(3);
+    setLoading(false)
+    setStep(3)
   }
 
-  // ── Step 3: Save recurrences ──────────────────────────────
   async function handleSaveRecurrences() {
-    if (!householdId) return;
-    setLoading(true);
-
-    const validRec = recurrences.filter(r => r.name.trim() && parseFloat(r.amount) > 0);
-
+    if (!householdId) return
+    setLoading(true)
+    const validRec = recurrences.filter(r => r.name.trim() && parseFloat(r.amount) > 0)
     if (validRec.length > 0) {
-      const now = new Date();
-
+      const now = new Date()
       for (const r of validRec) {
-        const dueDay = parseInt(r.due_day) || 1;
-        const nextDate = new Date(now.getFullYear(), now.getMonth(), dueDay);
-        if (nextDate <= now) nextDate.setMonth(nextDate.getMonth() + 1);
-
+        const dueDay = parseInt(r.due_day) || 1
+        const nextDate = new Date(now.getFullYear(), now.getMonth(), dueDay)
+        if (nextDate <= now) nextDate.setMonth(nextDate.getMonth() + 1)
         await supabase.from('recurrence_rules').insert({
           household_id: householdId,
           name: r.name.trim(),
@@ -154,340 +136,333 @@ export default function OnboardingPage() {
           active: true,
           split: 'individual',
           payment_method: 'pix',
-        });
+        })
       }
     }
-
-    // Mark onboarding as done
-    await supabase.from('households')
-      .update({ onboarding_done: true })
-      .eq('id', householdId);
-
-    setLoading(false);
-    router.push('/dashboard');
+    await supabase.from('households').update({ onboarding_done: true }).eq('id', householdId)
+    setLoading(false)
+    router.push('/dashboard')
   }
 
-  // ── Shared styles ──────────────────────────────────────────
-  const inputStyle: React.CSSProperties = {
-    padding: '11px 14px', fontSize: 14, borderRadius: 10,
-    border: '1px solid #e0e0e0', outline: 'none',
-    backgroundColor: 'white', boxSizing: 'border-box',
-  };
+  if (initLoading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </main>
+    )
+  }
 
-  if (initLoading) return <main style={{ padding: 24 }}><p style={{ color: '#999' }}>Carregando...</p></main>;
-
-  // ── Progress bar ──────────────────────────────────────────
-  const steps = ['Renda', 'Contas', 'Recorrências'];
+  const steps = [
+    { label: 'Renda', icon: Wallet },
+    { label: 'Contas', icon: Landmark },
+    { label: 'Recorrencias', icon: RotateCcw },
+  ]
+  const progressValue = ((step - 1) / steps.length) * 100
 
   return (
-    <main style={{ maxWidth: 520, margin: '0 auto', padding: '32px 16px 80px' }}>
-
-      {/* Header */}
-      <div style={{ marginBottom: 32, textAlign: 'center' }}>
-        <div style={{ fontSize: 32, marginBottom: 8 }}>💑</div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>
-          Olá{userName ? `, ${userName}` : ''}! Vamos configurar tudo.
-        </h1>
-        <p style={{ fontSize: 14, color: '#888', margin: '8px 0 0' }}>
-          3 passos rápidos para começar a usar o app.
-        </p>
-      </div>
-
-      {/* Progress */}
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 32, gap: 0 }}>
-        {steps.map((s, i) => {
-          const n = i + 1;
-          const done = n < step;
-          const active = n === step;
-          return (
-            <div key={s} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
-                <div style={{
-                  width: 32, height: 32, borderRadius: '50%', display: 'flex',
-                  alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700,
-                  backgroundColor: done ? '#2ecc71' : active ? '#3498db' : '#eee',
-                  color: done || active ? 'white' : '#aaa',
-                  transition: 'all 0.3s',
-                }}>
-                  {done ? '✓' : n}
-                </div>
-                <div style={{ fontSize: 11, color: active ? '#3498db' : done ? '#2ecc71' : '#aaa', marginTop: 4, fontWeight: active ? 600 : 400 }}>
-                  {s}
-                </div>
-              </div>
-              {i < steps.length - 1 && (
-                <div style={{ height: 2, flex: 0.8, backgroundColor: done ? '#2ecc71' : '#eee', marginBottom: 18, transition: 'background 0.3s' }} />
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ── STEP 1: Renda ── */}
-      {step === 1 && (
-        <div>
-          <h2 style={{ fontSize: 18, marginBottom: 4 }}>💵 Sua renda mensal</h2>
-          <p style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>
-            Adicione suas fontes de renda. Pode pular e adicionar depois.
+    <main className="min-h-screen bg-background">
+      <div className="mx-auto max-w-lg px-4 py-8 pb-24">
+        {/* Header */}
+        <div className="mb-8 text-center animate-fade-in">
+          <h1 className="text-xl font-bold text-foreground text-balance">
+            Ola{userName ? `, ${userName}` : ''}! Vamos configurar tudo.
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            3 passos rapidos para comecar a usar o app.
           </p>
+        </div>
 
-          {incomes.map((inc, i) => (
-            <div key={i} style={{ border: '1px solid #eee', borderRadius: 12, padding: 16, marginBottom: 12, backgroundColor: '#fafafa' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-                <div>
-                  <div style={{ fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 600 }}>Descrição</div>
-                  <input
-                    type="text"
-                    placeholder="Ex: Salário CLT"
-                    value={inc.description}
-                    onChange={e => setIncomes(incomes.map((x, j) => j === i ? { ...x, description: e.target.value } : x))}
-                    style={{ ...inputStyle, width: '100%' }}
-                  />
+        {/* Progress */}
+        <div className="mb-8">
+          <Progress value={progressValue} className="h-2 mb-4" />
+          <div className="flex justify-between">
+            {steps.map((s, i) => {
+              const n = i + 1
+              const done = n < step
+              const active = n === step
+              const StepIcon = s.icon
+              return (
+                <div key={s.label} className="flex flex-col items-center gap-1.5">
+                  <div className={cn(
+                    'flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-all',
+                    done ? 'bg-accent text-accent-foreground' :
+                    active ? 'bg-primary text-primary-foreground' :
+                    'bg-muted text-muted-foreground'
+                  )}>
+                    {done ? <Check className="h-4 w-4" /> : <StepIcon className="h-4 w-4" />}
+                  </div>
+                  <span className={cn(
+                    'text-[11px] font-medium',
+                    active ? 'text-primary' : done ? 'text-accent' : 'text-muted-foreground'
+                  )}>
+                    {s.label}
+                  </span>
                 </div>
-                <div>
-                  <div style={{ fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 600 }}>Valor (R$)</div>
-                  <input
-                    type="number"
-                    placeholder="5000"
-                    value={inc.amount}
-                    onChange={e => setIncomes(incomes.map((x, j) => j === i ? { ...x, amount: e.target.value } : x))}
-                    style={{ ...inputStyle, width: '100%' }}
-                  />
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 600 }}>Tipo</div>
-                <select
-                  value={inc.type}
-                  onChange={e => setIncomes(incomes.map((x, j) => j === i ? { ...x, type: e.target.value } : x))}
-                  style={{ ...inputStyle, width: '100%', cursor: 'pointer' }}
-                >
-                  {INCOME_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                </select>
-              </div>
-              {incomes.length > 1 && (
-                <button
-                  onClick={() => setIncomes(incomes.filter((_, j) => j !== i))}
-                  style={{ marginTop: 10, background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer', fontSize: 12 }}
-                >
-                  × Remover
-                </button>
-              )}
-            </div>
-          ))}
-
-          <button
-            onClick={() => setIncomes([...incomes, { description: '', amount: '', type: 'salary' }])}
-            style={{ width: '100%', padding: '10px', border: '1px dashed #3498db', borderRadius: 10, backgroundColor: 'transparent', color: '#3498db', cursor: 'pointer', fontSize: 14, marginBottom: 20 }}
-          >
-            + Adicionar outra renda
-          </button>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <button
-              onClick={() => setStep(2)}
-              style={{ padding: '13px', border: '1px solid #ddd', borderRadius: 10, backgroundColor: 'white', cursor: 'pointer', color: '#888', fontSize: 14 }}
-            >
-              Pular por agora
-            </button>
-            <button
-              onClick={handleSaveIncomes}
-              disabled={loading}
-              style={{ padding: '13px', border: 'none', borderRadius: 10, backgroundColor: loading ? '#95a5a6' : '#3498db', color: 'white', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 14 }}
-            >
-              {loading ? 'Salvando...' : 'Próximo →'}
-            </button>
+              )
+            })}
           </div>
         </div>
-      )}
 
-      {/* ── STEP 2: Contas ── */}
-      {step === 2 && (
-        <div>
-          <h2 style={{ fontSize: 18, marginBottom: 4 }}>🏦 Suas contas</h2>
-          <p style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>
-            Cadastre suas contas bancárias para rastrear de onde saem os gastos.
-          </p>
+        {/* Step 1: Income */}
+        {step === 1 && (
+          <div className="animate-slide-up">
+            <h2 className="text-lg font-bold text-foreground mb-1">Sua renda mensal</h2>
+            <p className="text-sm text-muted-foreground mb-5">
+              Adicione suas fontes de renda. Pode pular e adicionar depois.
+            </p>
 
-          {accounts.map((acc, i) => (
-            <div key={i} style={{ border: '1px solid #eee', borderRadius: 12, padding: 16, marginBottom: 12, backgroundColor: '#fafafa' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div>
-                  <div style={{ fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 600 }}>Nome</div>
-                  <input
-                    type="text"
-                    placeholder="Ex: Nubank, Inter, Bradesco..."
-                    value={acc.name}
-                    onChange={e => setAccounts(accounts.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
-                    style={{ ...inputStyle, width: '100%' }}
-                  />
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 600 }}>Tipo</div>
-                  <select
-                    value={acc.type}
-                    onChange={e => setAccounts(accounts.map((x, j) => j === i ? { ...x, type: e.target.value } : x))}
-                    style={{ ...inputStyle, width: '100%', cursor: 'pointer' }}
-                  >
-                    {ACCOUNT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                  </select>
-                </div>
-              </div>
-              {accounts.length > 1 && (
-                <button
-                  onClick={() => setAccounts(accounts.filter((_, j) => j !== i))}
-                  style={{ marginTop: 10, background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer', fontSize: 12 }}
-                >
-                  × Remover
-                </button>
-              )}
-            </div>
-          ))}
-
-          <button
-            onClick={() => setAccounts([...accounts, { name: '', type: 'checking' }])}
-            style={{ width: '100%', padding: '10px', border: '1px dashed #3498db', borderRadius: 10, backgroundColor: 'transparent', color: '#3498db', cursor: 'pointer', fontSize: 14, marginBottom: 20 }}
-          >
-            + Adicionar outra conta
-          </button>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <button
-              onClick={() => setStep(1)}
-              style={{ padding: '13px', border: '1px solid #ddd', borderRadius: 10, backgroundColor: 'white', cursor: 'pointer', color: '#888', fontSize: 14 }}
-            >
-              ← Voltar
-            </button>
-            <button
-              onClick={handleSaveAccounts}
-              disabled={loading}
-              style={{ padding: '13px', border: 'none', borderRadius: 10, backgroundColor: loading ? '#95a5a6' : '#3498db', color: 'white', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 14 }}
-            >
-              {loading ? 'Salvando...' : 'Próximo →'}
-            </button>
-          </div>
-
-          <button
-            onClick={() => setStep(3)}
-            style={{ width: '100%', marginTop: 10, padding: '10px', border: 'none', background: 'none', color: '#aaa', cursor: 'pointer', fontSize: 13 }}
-          >
-            Pular por agora
-          </button>
-        </div>
-      )}
-
-      {/* ── STEP 3: Recorrências ── */}
-      {step === 3 && (
-        <div>
-          <h2 style={{ fontSize: 18, marginBottom: 4 }}>🔁 Contas fixas mensais</h2>
-          <p style={{ fontSize: 13, color: '#888', marginBottom: 20 }}>
-            Adicione contas que se repetem todo mês. O app vai lembrá-los de pagar.
-          </p>
-
-          {/* Sugestões rápidas */}
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 12, color: '#888', marginBottom: 8 }}>Sugestões rápidas:</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {RECURRENCE_SUGGESTIONS.map(s => (
-                <button
-                  key={s.name}
-                  onClick={() => {
-                    const alreadyAdded = recurrences.some(r => r.name === s.name);
-                    if (!alreadyAdded) {
-                      setRecurrences([...recurrences.filter(r => r.name.trim() || r.amount.trim()), { name: s.name, amount: '', due_day: '1' }]);
-                    }
-                  }}
-                  style={{
-                    padding: '6px 12px', border: '1px solid #ddd', borderRadius: 20,
-                    backgroundColor: recurrences.some(r => r.name === s.name) ? '#e8f4fd' : 'white',
-                    cursor: 'pointer', fontSize: 13,
-                    color: recurrences.some(r => r.name === s.name) ? '#3498db' : '#555',
-                  }}
-                >
-                  {s.name}
-                </button>
+            <div className="flex flex-col gap-3">
+              {incomes.map((inc, i) => (
+                <Card key={i}>
+                  <CardContent className="p-4">
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div className="flex flex-col gap-1.5">
+                        <Label className="text-xs">Descricao</Label>
+                        <Input
+                          type="text"
+                          placeholder="Ex: Salario CLT"
+                          value={inc.description}
+                          onChange={e => setIncomes(incomes.map((x, j) => j === i ? { ...x, description: e.target.value } : x))}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <Label className="text-xs">Valor (R$)</Label>
+                        <Input
+                          type="number"
+                          placeholder="5000"
+                          value={inc.amount}
+                          onChange={e => setIncomes(incomes.map((x, j) => j === i ? { ...x, amount: e.target.value } : x))}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label className="text-xs">Tipo</Label>
+                      <select
+                        value={inc.type}
+                        onChange={e => setIncomes(incomes.map((x, j) => j === i ? { ...x, type: e.target.value } : x))}
+                        className="flex h-10 w-full border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        style={{ borderRadius: 'var(--input-radius)' }}
+                      >
+                        {INCOME_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                      </select>
+                    </div>
+                    {incomes.length > 1 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2 text-destructive h-8"
+                        onClick={() => setIncomes(incomes.filter((_, j) => j !== i))}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                        Remover
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
               ))}
             </div>
-          </div>
 
-          {recurrences.map((rec, i) => (
-            <div key={i} style={{ border: '1px solid #eee', borderRadius: 12, padding: 16, marginBottom: 12, backgroundColor: '#fafafa' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 10 }}>
-                <div>
-                  <div style={{ fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 600 }}>Nome</div>
-                  <input
-                    type="text"
-                    placeholder="Netflix"
-                    value={rec.name}
-                    onChange={e => setRecurrences(recurrences.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
-                    style={{ ...inputStyle, width: '100%' }}
-                  />
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 600 }}>Valor (R$)</div>
-                  <input
-                    type="number"
-                    placeholder="55,90"
-                    value={rec.amount}
-                    onChange={e => setRecurrences(recurrences.map((x, j) => j === i ? { ...x, amount: e.target.value } : x))}
-                    style={{ ...inputStyle, width: '100%' }}
-                  />
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, color: '#666', marginBottom: 4, fontWeight: 600 }}>Dia venc.</div>
-                  <input
-                    type="number"
-                    placeholder="1"
-                    min="1"
-                    max="28"
-                    value={rec.due_day}
-                    onChange={e => setRecurrences(recurrences.map((x, j) => j === i ? { ...x, due_day: e.target.value } : x))}
-                    style={{ ...inputStyle, width: '100%' }}
-                  />
-                </div>
-              </div>
-              {recurrences.length > 1 && (
-                <button
-                  onClick={() => setRecurrences(recurrences.filter((_, j) => j !== i))}
-                  style={{ marginTop: 10, background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer', fontSize: 12 }}
-                >
-                  × Remover
-                </button>
-              )}
+            <Button
+              variant="outline"
+              className="w-full mt-3 border-dashed"
+              onClick={() => setIncomes([...incomes, { description: '', amount: '', type: 'salary' }])}
+            >
+              <Plus className="h-4 w-4" />
+              Adicionar outra renda
+            </Button>
+
+            <div className="grid grid-cols-2 gap-3 mt-6">
+              <Button variant="outline" onClick={() => setStep(2)}>
+                Pular
+              </Button>
+              <Button onClick={handleSaveIncomes} disabled={loading}>
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><span>Proximo</span><ChevronRight className="h-4 w-4" /></>}
+              </Button>
             </div>
-          ))}
-
-          <button
-            onClick={() => setRecurrences([...recurrences, { name: '', amount: '', due_day: '1' }])}
-            style={{ width: '100%', padding: '10px', border: '1px dashed #3498db', borderRadius: 10, backgroundColor: 'transparent', color: '#3498db', cursor: 'pointer', fontSize: 14, marginBottom: 20 }}
-          >
-            + Adicionar outra recorrência
-          </button>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <button
-              onClick={() => setStep(2)}
-              style={{ padding: '13px', border: '1px solid #ddd', borderRadius: 10, backgroundColor: 'white', cursor: 'pointer', color: '#888', fontSize: 14 }}
-            >
-              ← Voltar
-            </button>
-            <button
-              onClick={handleSaveRecurrences}
-              disabled={loading}
-              style={{ padding: '13px', border: 'none', borderRadius: 10, backgroundColor: loading ? '#95a5a6' : '#2ecc71', color: 'white', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 16 }}
-            >
-              {loading ? 'Salvando...' : '🚀 Concluir!'}
-            </button>
           </div>
+        )}
 
-          <button
-            onClick={() => router.push('/dashboard')}
-            style={{ width: '100%', marginTop: 10, padding: '10px', border: 'none', background: 'none', color: '#aaa', cursor: 'pointer', fontSize: 13 }}
-          >
-            Pular e ir para o dashboard
-          </button>
-        </div>
-      )}
+        {/* Step 2: Accounts */}
+        {step === 2 && (
+          <div className="animate-slide-up">
+            <h2 className="text-lg font-bold text-foreground mb-1">Suas contas</h2>
+            <p className="text-sm text-muted-foreground mb-5">
+              Cadastre suas contas bancarias para rastrear de onde saem os gastos.
+            </p>
+
+            <div className="flex flex-col gap-3">
+              {accounts.map((acc, i) => (
+                <Card key={i}>
+                  <CardContent className="p-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex flex-col gap-1.5">
+                        <Label className="text-xs">Nome</Label>
+                        <Input
+                          type="text"
+                          placeholder="Nubank, Inter..."
+                          value={acc.name}
+                          onChange={e => setAccounts(accounts.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <Label className="text-xs">Tipo</Label>
+                        <select
+                          value={acc.type}
+                          onChange={e => setAccounts(accounts.map((x, j) => j === i ? { ...x, type: e.target.value } : x))}
+                          className="flex h-10 w-full border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          style={{ borderRadius: 'var(--input-radius)' }}
+                        >
+                          {ACCOUNT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    {accounts.length > 1 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2 text-destructive h-8"
+                        onClick={() => setAccounts(accounts.filter((_, j) => j !== i))}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                        Remover
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <Button
+              variant="outline"
+              className="w-full mt-3 border-dashed"
+              onClick={() => setAccounts([...accounts, { name: '', type: 'checking' }])}
+            >
+              <Plus className="h-4 w-4" />
+              Adicionar outra conta
+            </Button>
+
+            <div className="grid grid-cols-2 gap-3 mt-6">
+              <Button variant="outline" onClick={() => setStep(1)}>
+                <ChevronLeft className="h-4 w-4" />
+                Voltar
+              </Button>
+              <Button onClick={handleSaveAccounts} disabled={loading}>
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><span>Proximo</span><ChevronRight className="h-4 w-4" /></>}
+              </Button>
+            </div>
+            <Button variant="ghost" className="w-full mt-2 text-muted-foreground" onClick={() => setStep(3)}>
+              Pular
+            </Button>
+          </div>
+        )}
+
+        {/* Step 3: Recurrences */}
+        {step === 3 && (
+          <div className="animate-slide-up">
+            <h2 className="text-lg font-bold text-foreground mb-1">Contas fixas mensais</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Adicione contas que se repetem todo mes. O app vai lembra-los de pagar.
+            </p>
+
+            {/* Quick suggestions */}
+            <div className="mb-4">
+              <p className="text-xs text-muted-foreground mb-2">Sugestoes rapidas:</p>
+              <div className="flex flex-wrap gap-2">
+                {RECURRENCE_SUGGESTIONS.map(s => {
+                  const added = recurrences.some(r => r.name === s.name)
+                  return (
+                    <Badge
+                      key={s.name}
+                      variant={added ? 'default' : 'outline'}
+                      className="cursor-pointer"
+                      onClick={() => {
+                        if (!added) {
+                          setRecurrences([...recurrences.filter(r => r.name.trim() || r.amount.trim()), { name: s.name, amount: '', due_day: '1' }])
+                        }
+                      }}
+                    >
+                      {s.name}
+                    </Badge>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {recurrences.map((rec, i) => (
+                <Card key={i}>
+                  <CardContent className="p-4">
+                    <div className="grid grid-cols-[2fr_1fr_1fr] gap-3">
+                      <div className="flex flex-col gap-1.5">
+                        <Label className="text-xs">Nome</Label>
+                        <Input
+                          type="text"
+                          placeholder="Netflix"
+                          value={rec.name}
+                          onChange={e => setRecurrences(recurrences.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <Label className="text-xs">Valor</Label>
+                        <Input
+                          type="number"
+                          placeholder="55,90"
+                          value={rec.amount}
+                          onChange={e => setRecurrences(recurrences.map((x, j) => j === i ? { ...x, amount: e.target.value } : x))}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <Label className="text-xs">Dia</Label>
+                        <Input
+                          type="number"
+                          placeholder="1"
+                          min={1}
+                          max={28}
+                          value={rec.due_day}
+                          onChange={e => setRecurrences(recurrences.map((x, j) => j === i ? { ...x, due_day: e.target.value } : x))}
+                        />
+                      </div>
+                    </div>
+                    {recurrences.length > 1 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2 text-destructive h-8"
+                        onClick={() => setRecurrences(recurrences.filter((_, j) => j !== i))}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                        Remover
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <Button
+              variant="outline"
+              className="w-full mt-3 border-dashed"
+              onClick={() => setRecurrences([...recurrences, { name: '', amount: '', due_day: '1' }])}
+            >
+              <Plus className="h-4 w-4" />
+              Adicionar outra recorrencia
+            </Button>
+
+            <div className="grid grid-cols-2 gap-3 mt-6">
+              <Button variant="outline" onClick={() => setStep(2)}>
+                <ChevronLeft className="h-4 w-4" />
+                Voltar
+              </Button>
+              <Button onClick={handleSaveRecurrences} disabled={loading} className="bg-accent text-accent-foreground hover:bg-accent/90">
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Rocket className="h-4 w-4" /><span>Concluir</span></>}
+              </Button>
+            </div>
+            <Button variant="ghost" className="w-full mt-2 text-muted-foreground" onClick={() => router.push('/dashboard')}>
+              Pular e ir para o dashboard
+            </Button>
+          </div>
+        )}
+      </div>
     </main>
-  );
+  )
 }

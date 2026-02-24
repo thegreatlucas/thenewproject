@@ -1,224 +1,147 @@
-'use client';
+'use client'
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabaseClient'
+import { Home, CreditCard, Plus, PiggyBank, Users } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
-const HIDDEN_PATHS = ['/', '/login', '/setup', '/onboarding'];
+const HIDDEN_PATHS = ['/', '/login', '/setup', '/onboarding']
 
 export default function BottomNav() {
-  const pathname = usePathname();
-  const [pendingRecurrences, setPendingRecurrences] = useState(0);
-  const [hasBalance, setHasBalance] = useState(false);
+  const pathname = usePathname()
+  const [pendingRecurrences, setPendingRecurrences] = useState(0)
+  const [hasBalance, setHasBalance] = useState(false)
 
   useEffect(() => {
-    loadBadges();
-  }, [pathname]); // recarrega quando muda de página
+    loadBadges()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname])
 
   async function loadBadges() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) return
 
     const { data: member } = await supabase
       .from('household_members')
       .select('household_id')
       .eq('user_id', user.id)
-      .single();
+      .single()
 
-    if (!member) return;
-    const hid = member.household_id;
-    const today = new Date().toISOString().split('T')[0];
+    if (!member) return
+    const hid = member.household_id
+    const today = new Date().toISOString().split('T')[0]
 
-    // Recorrências pendentes
     const { data: rules } = await supabase
       .from('recurrence_rules')
       .select('id')
       .eq('household_id', hid)
       .eq('active', true)
-      .lte('next_date', today);
+      .lte('next_date', today)
 
-    setPendingRecurrences((rules || []).length);
+    setPendingRecurrences((rules || []).length)
 
-    // Saldo em aberto com parceiro
     const { data: balRows } = await supabase
       .from('balances')
       .select('amount')
-      .eq('household_id', hid);
+      .eq('household_id', hid)
 
-    const total = (balRows || []).reduce((s, r) => s + Number(r.amount), 0);
-    setHasBalance(total > 0.01);
+    const total = (balRows || []).reduce((s, r) => s + Number(r.amount), 0)
+    setHasBalance(total > 0.01)
   }
 
-  if (HIDDEN_PATHS.includes(pathname)) return null;
+  if (HIDDEN_PATHS.includes(pathname)) return null
 
   const NAV_ITEMS = [
     {
       href: '/dashboard',
-      label: 'Início',
+      label: 'Inicio',
       badge: 0,
-      icon: (active: boolean) => (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill={active ? '#2ecc71' : 'none'} stroke={active ? '#2ecc71' : '#9ca3af'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-          <polyline points="9 22 9 12 15 12 15 22"/>
-        </svg>
-      ),
+      icon: Home,
     },
     {
       href: '/transactions',
       label: 'Gastos',
       badge: 0,
-      icon: (active: boolean) => (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#2ecc71' : '#9ca3af'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
-          <line x1="1" y1="10" x2="23" y2="10"/>
-        </svg>
-      ),
+      icon: CreditCard,
     },
     {
       href: '/transactions/new',
-      label: 'Lançar',
-      badge: 0,
-      icon: null, // botão central
+      label: 'Lancar',
+      badge: pendingRecurrences,
+      icon: null, // Central button
     },
     {
       href: '/budgets',
-      label: 'Orçamento',
+      label: 'Orcamento',
       badge: 0,
-      icon: (active: boolean) => (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#2ecc71' : '#9ca3af'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="12" y1="1" x2="12" y2="23"/>
-          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-        </svg>
-      ),
+      icon: PiggyBank,
     },
     {
       href: '/balances',
       label: 'Acerto',
       badge: hasBalance ? 1 : 0,
-      icon: (active: boolean) => (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? '#2ecc71' : '#9ca3af'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-          <circle cx="9" cy="7" r="4"/>
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-        </svg>
-      ),
+      icon: Users,
     },
-  ];
+  ]
 
   return (
-    <nav style={{
-      position: 'fixed',
-      bottom: 0,
-      left: 0,
-      right: 0,
-      height: 64,
-      backgroundColor: 'var(--surface)',
-      borderTop: '1px solid var(--border)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-around',
-      zIndex: 100,
-      paddingBottom: 'env(safe-area-inset-bottom)',
-    }}>
-      {NAV_ITEMS.map(({ href, icon, label, badge }) => {
-        // Botão central de lançar
-        if (!icon) {
+    <nav className="fixed bottom-0 left-0 right-0 z-[100] flex items-center justify-around border-t border-border bg-card glass pb-[env(safe-area-inset-bottom)]" style={{ height: 64 }}>
+      {NAV_ITEMS.map(({ href, icon: Icon, label, badge }) => {
+        // Central action button
+        if (!Icon) {
           return (
-            <Link key={href} href={href} style={{ textDecoration: 'none' }}>
-              <div style={{
-                width: 54,
-                height: 54,
-                borderRadius: '50%',
-                backgroundColor: '#2ecc71',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 4px 16px rgba(46, 204, 113, 0.45)',
-                marginBottom: 8,
-                position: 'relative',
-              }}>
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
-                  <line x1="12" y1="5" x2="12" y2="19"/>
-                  <line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                {/* Badge de recorrências pendentes */}
-                {pendingRecurrences > 0 && (
-                  <div style={{
-                    position: 'absolute',
-                    top: -2,
-                    right: -2,
-                    width: 18,
-                    height: 18,
-                    borderRadius: '50%',
-                    backgroundColor: '#e74c3c',
-                    border: '2px solid var(--surface)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 10,
-                    color: 'white',
-                    fontWeight: 'bold',
-                  }}>
-                    {pendingRecurrences > 9 ? '9+' : pendingRecurrences}
-                  </div>
+            <Link key={href} href={href} className="relative -mt-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95">
+                <Plus className="h-6 w-6" strokeWidth={2.5} />
+                {badge > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground ring-2 ring-card">
+                    {badge > 9 ? '9+' : badge}
+                  </span>
                 )}
               </div>
             </Link>
-          );
+          )
         }
 
         const isActive =
           pathname === href ||
-          (href !== '/dashboard' && pathname.startsWith(href));
+          (href !== '/dashboard' && pathname.startsWith(href))
 
         return (
-          <Link key={href} href={href} style={{ textDecoration: 'none' }}>
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 3,
-              minWidth: 52,
-              paddingTop: 4,
-              position: 'relative',
-            }}>
-              <div style={{ position: 'relative' }}>
-                {icon(isActive)}
-                {/* Badge ponto vermelho */}
-                {badge > 0 && (
-                  <div style={{
-                    position: 'absolute',
-                    top: -3,
-                    right: -3,
-                    width: 9,
-                    height: 9,
-                    borderRadius: '50%',
-                    backgroundColor: '#e74c3c',
-                    border: '1.5px solid var(--surface)',
-                  }} />
+          <Link key={href} href={href} className="flex flex-col items-center gap-0.5 pt-1 min-w-[52px]">
+            <div className="relative">
+              <Icon
+                className={cn(
+                  'h-[22px] w-[22px] transition-colors',
+                  isActive ? 'text-primary' : 'text-muted-foreground'
                 )}
-              </div>
-              <span style={{
-                fontSize: 10,
-                color: isActive ? '#2ecc71' : 'var(--text-muted)',
-                fontWeight: isActive ? 700 : 400,
-                letterSpacing: 0.2,
-              }}>
-                {label}
-              </span>
-              <div style={{
-                width: 4,
-                height: 4,
-                borderRadius: '50%',
-                backgroundColor: isActive ? '#2ecc71' : 'transparent',
-                marginTop: 1,
-              }} />
+                strokeWidth={isActive ? 2.2 : 1.8}
+              />
+              {badge > 0 && (
+                <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-destructive ring-[1.5px] ring-card" />
+              )}
             </div>
+            <span
+              className={cn(
+                'text-[10px] tracking-wide transition-colors',
+                isActive ? 'text-primary font-semibold' : 'text-muted-foreground font-normal'
+              )}
+            >
+              {label}
+            </span>
+            <div
+              className={cn(
+                'h-1 w-1 rounded-full mt-0.5 transition-colors',
+                isActive ? 'bg-primary' : 'bg-transparent'
+              )}
+            />
           </Link>
-        );
+        )
       })}
     </nav>
-  );
+  )
 }
