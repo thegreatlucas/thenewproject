@@ -323,6 +323,8 @@ export default function Header({
                   style={{
                     background: 'var(--primary)',
                     color: 'white',
+                    fontSize: '24px',
+                    fontWeight: 'bold',
                   }}
                 >
                   +
