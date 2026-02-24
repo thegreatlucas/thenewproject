@@ -3,490 +3,480 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
-import { formatCurrency } from '@/lib/format';
+import { generateHouseholdKey, encryptHouseholdKey } from '@/lib/crypto';
+import { useCrypto } from '@/lib/cryptoContext';
 
-const INCOME_TYPES = [
-  { value: 'salary',     label: '💼 Salário' },
-  { value: 'freelance',  label: '💻 Freelance' },
-  { value: 'bonus',      label: '🎯 Bônus' },
-  { value: 'vr',         label: '🍽️ Vale Refeição' },
-  { value: 'va',         label: '🛒 Vale Alimentação' },
-  { value: 'investment', label: '📈 Rendimento' },
-  { value: 'other',      label: '❓ Outro' },
-];
-
-const ACCOUNT_TYPES = [
-  { value: 'checking',     label: '🏦 Conta Corrente' },
-  { value: 'savings',      label: '💰 Poupança' },
-  { value: 'cash',         label: '💵 Dinheiro' },
-  { value: 'meal_voucher', label: '🍽️ Vale Refeição' },
-  { value: 'food_voucher', label: '🛒 Vale Alimentação' },
-  { value: 'investment',   label: '📈 Investimento' },
-  { value: 'other',        label: '❓ Outro' },
-];
-
-const RECURRENCE_SUGGESTIONS = [
-  { name: 'Netflix',   amount: '' },
-  { name: 'Spotify',   amount: '' },
-  { name: 'Internet',  amount: '' },
-  { name: 'Academia',  amount: '' },
-  { name: 'Aluguel',   amount: '' },
-];
+const BUDGET_CATEGORIES = ['Mercado', 'Moradia', 'Lazer', 'Transporte', 'Saúde'];
+const GOAL_SUGGESTIONS = ['Viagem de Férias', 'Reserva de Emergência', 'Carro Novo', 'Casamento'];
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
-  const [householdId, setHouseholdId] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState('');
+  const [userId, setUserId] = useState<string | null>(null);
+  const [householdId, setHouseholdId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [initLoading, setInitLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
   const router = useRouter();
+  const { setHouseholdKey } = useCrypto();
 
-  // Step 1 — Renda
-  const [incomes, setIncomes] = useState([
-    { description: '', amount: '', type: 'salary' },
-  ]);
+  // Step 2 (Household)
+  const [householdMode, setHouseholdMode] = useState<'create' | 'join'>('create');
+  const [newHouseholdName, setNewHouseholdName] = useState('');
+  const [joinCode, setJoinCode] = useState('');
 
-  // Step 2 — Contas
-  const [accounts, setAccounts] = useState([
-    { name: '', type: 'checking' },
-  ]);
+  // Step 3 (Budget)
+  const [budgetAmount, setBudgetAmount] = useState('');
+  const [budgetName, setBudgetName] = useState('');
 
-  // Step 3 — Recorrências
-  const [recurrences, setRecurrences] = useState([
-    { name: '', amount: '', due_day: '1' },
-  ]);
+  // Step 4 (Goal)
+  const [goalName, setGoalName] = useState('');
+  const [goalAmount, setGoalAmount] = useState('');
+
+  // Step 5 (Security)
+  const [vaultPin, setVaultPin] = useState('');
 
   useEffect(() => { init(); }, []);
 
   async function init() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push('/login'); return; }
+
     setUserId(user.id);
     setUserName(user.user_metadata?.name || user.email?.split('@')[0] || '');
 
-    const { data: member } = await supabase
-      .from('household_members')
-      .select('household_id')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!member) { router.push('/setup'); return; }
-    setHouseholdId(member.household_id);
+    // Verifica se já tem household
+    const { data: member } = await supabase.from('household_members').select('household_id').eq('user_id', user.id).maybeSingle();
+    if (member) {
+      setHouseholdId(member.household_id);
+    }
     setInitLoading(false);
   }
 
-  // ── Step 1: Save incomes ──────────────────────────────────
-  async function handleSaveIncomes() {
-    if (!householdId || !userId) return;
-    setLoading(true);
+  // ==== AÇÕES POR STEP ====
 
-    const validIncomes = incomes.filter(i => i.description.trim() && parseFloat(i.amount) > 0);
-
-    if (validIncomes.length > 0) {
-      const now = new Date();
-      const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-
-      await supabase.from('incomes').insert(
-        validIncomes.map(i => ({
-          household_id: householdId,
-          user_id: userId,
-          description: i.description.trim(),
-          amount: parseFloat(i.amount),
-          type: i.type,
-          recurrence: 'monthly',
-          month,
-        }))
-      );
+  // Step 1: Bem vindo
+  async function completeStep1() {
+    if (userName.trim()) {
+      await supabase.auth.updateUser({ data: { name: userName.trim() } });
+      if (userId) {
+        await supabase.from('profiles').upsert({ id: userId, name: userName.trim() }, { onConflict: 'id' });
+      }
     }
-
-    setLoading(false);
-    setStep(2);
+    if (householdId) {
+      // Já tem grupo, pula o Step 2
+      setStep(3);
+    } else {
+      setStep(2);
+    }
   }
 
-  // ── Step 2: Save accounts ──────────────────────────────────
-  async function handleSaveAccounts() {
-    if (!householdId || !userId) return;
+  // Step 2: Household
+  async function completeStep2() {
+    setErrorMsg(null);
     setLoading(true);
 
-    const validAccounts = accounts.filter(a => a.name.trim());
+    if (householdMode === 'create') {
+      if (!newHouseholdName.trim()) { setErrorMsg('Digite um nome para o grupo.'); setLoading(false); return; }
+      const code = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-    if (validAccounts.length > 0) {
-      await supabase.from('accounts').insert(
-        validAccounts.map(a => ({
-          household_id: householdId,
-          owner_id: userId,
-          name: a.name.trim(),
-          type: a.type,
-        }))
-      );
+      const { data: hh, error } = await supabase.from('households').insert({
+        name: newHouseholdName.trim(),
+        invite_code: code,
+      }).select().single();
+
+      if (error || !hh) { setErrorMsg('Erro ao criar espaço.'); setLoading(false); return; }
+      await supabase.from('household_members').insert({ household_id: hh.id, user_id: userId, role: 'admin' });
+      setHouseholdId(hh.id);
+
+    } else {
+      if (!joinCode.trim()) { setErrorMsg('Informe o código de convite.'); setLoading(false); return; }
+      const { data: hh, error } = await supabase.from('households').select('*').eq('invite_code', joinCode.trim().toUpperCase()).single();
+      if (error || !hh) { setErrorMsg('Código inválido.'); setLoading(false); return; }
+
+      const { data: existing } = await supabase.from('household_members').select('*').eq('household_id', hh.id).eq('user_id', userId).maybeSingle();
+      if (existing) { setErrorMsg('Você já está neste grupo.'); setLoading(false); return; }
+
+      await supabase.from('household_members').insert({ household_id: hh.id, user_id: userId, role: 'member' });
+      setHouseholdId(hh.id);
     }
 
     setLoading(false);
     setStep(3);
   }
 
-  // ── Step 3: Save recurrences ──────────────────────────────
-  async function handleSaveRecurrences() {
-    if (!householdId) return;
+  // Step 3: Budget
+  async function completeStep3() {
+    if (!budgetName || !budgetAmount || !householdId || !userId) {
+      setStep(4); return;
+    }
     setLoading(true);
 
-    const validRec = recurrences.filter(r => r.name.trim() && parseFloat(r.amount) > 0);
+    // Create category first
+    let catId = '';
+    const { data: newCat } = await supabase.from('categories').insert({
+      household_id: householdId,
+      name: budgetName,
+      type: 'expense',
+      color: '#3498db',
+      icon: '🛒'
+    }).select().single();
+    if (newCat) catId = newCat.id;
 
-    if (validRec.length > 0) {
-      const now = new Date();
+    // Create budget
+    const now = new Date();
+    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
 
-      for (const r of validRec) {
-        const dueDay = parseInt(r.due_day) || 1;
-        const nextDate = new Date(now.getFullYear(), now.getMonth(), dueDay);
-        if (nextDate <= now) nextDate.setMonth(nextDate.getMonth() + 1);
-
-        await supabase.from('recurrence_rules').insert({
-          household_id: householdId,
-          name: r.name.trim(),
-          recurrence_type: 'fixed',
-          amount: parseFloat(r.amount),
-          due_day: dueDay,
-          day_of_month: dueDay,
-          frequency: 'monthly',
-          next_date: nextDate.toISOString().split('T')[0],
-          active: true,
-          split: 'individual',
-          payment_method: 'pix',
-        });
-      }
+    if (catId) {
+      await supabase.from('budgets').insert({
+        household_id: householdId,
+        category_id: catId,
+        amount: parseFloat(budgetAmount),
+        month
+      });
     }
 
-    // Mark onboarding as done
-    await supabase.from('households')
-      .update({ onboarding_done: true })
-      .eq('id', householdId);
-
     setLoading(false);
-    router.push('/dashboard');
+    setStep(4);
   }
 
-  // ── Shared styles ──────────────────────────────────────────
-  const inputStyle: React.CSSProperties = {
-    padding: '11px 14px', fontSize: 14, borderRadius: 'var(--radius)',
-    border: '1px solid #e0e0e0', outline: 'none',
-    backgroundColor: 'var(--surface)', boxSizing: 'border-box',
-  };
+  // Step 4: Goal
+  async function completeStep4() {
+    if (!goalName || !goalAmount || !householdId || !userId) {
+      setStep(5); return;
+    }
+    setLoading(true);
 
-  if (initLoading) return <main style={{ padding: 24 }}><p style={{ color: 'var(--text-muted)' }}>Carregando...</p></main>;
+    await supabase.from('goals').insert({
+      household_id: householdId,
+      owner_id: userId,
+      name: goalName,
+      target_amount: parseFloat(goalAmount),
+      current_amount: 0,
+      type: 'individual',
+      color: '#2ecc71',
+      icon: '🎯'
+    });
 
-  // ── Progress bar ──────────────────────────────────────────
-  const steps = ['Renda', 'Contas', 'Recorrências'];
+    setLoading(false);
+    setStep(5);
+  }
+
+  // Step 5: PIN & Finish
+  async function finishOnboarding() {
+    setLoading(true);
+    setErrorMsg(null);
+
+    if (vaultPin && vaultPin.length >= 4 && householdId) {
+      const hKey = await generateHouseholdKey();
+      const result = await encryptHouseholdKey(hKey, vaultPin);
+
+      await supabase.from('households').update({
+        encrypted_key: result.encryptedKey,
+        key_salt: result.salt
+      }).eq('id', householdId);
+
+      setHouseholdKey(hKey);
+    } else if (vaultPin && vaultPin.length > 0 && vaultPin.length < 4) {
+      setErrorMsg('O PIN deve ter 4 dígitos no mínimo (ou deixe em branco para pular).');
+      setLoading(false);
+      return;
+    }
+
+    if (householdId) {
+      await supabase.from('households').update({ onboarding_done: true }).eq('id', householdId);
+    }
+
+    setLoading(false);
+    // Force remount by redirecting hard to dashboard
+    window.location.href = '/dashboard';
+  }
+
+  function skipToDashboard() {
+    window.location.href = '/dashboard';
+  }
+
+  // ==== RENDER ====
+
+  if (initLoading) {
+    return (
+      <main style={{ padding: 32, maxWidth: 500, margin: '0 auto', textAlign: 'center' }}>
+        <p className="skeleton" style={{ height: 200, borderRadius: 20 }}></p>
+      </main>
+    );
+  }
+
+  const STEPS_TOTAL = 5;
+  const progressPct = ((step - 1) / (STEPS_TOTAL - 1)) * 100;
 
   return (
-    <main style={{ maxWidth: 520, margin: '0 auto', padding: '32px 16px 80px' }}>
+    <main style={{ maxWidth: 520, margin: '0 auto', padding: '32px 20px', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
 
-      {/* Header */}
-      <div style={{ marginBottom: 32, textAlign: 'center' }}>
-        <div style={{ fontSize: 32, marginBottom: 8 }}>💑</div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>
-          Olá{userName ? `, ${userName}` : ''}! Vamos configurar tudo.
-        </h1>
-        <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: '8px 0 0' }}>
-          3 passos rápidos para começar a usar o app.
-        </p>
+      {/* Progress Bar Topo */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <div style={{ flex: 1, backgroundColor: 'var(--bg2)', height: 8, borderRadius: 4, overflow: 'hidden', marginRight: 16 }}>
+          <div style={{ height: '100%', width: `${progressPct}%`, backgroundColor: 'var(--blue)', transition: 'width 0.4s cubic-bezier(0.2, 0.8, 0.2, 1)' }} />
+        </div>
+        <button onClick={skipToDashboard} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          Pular tudo
+        </button>
       </div>
 
-      {/* Progress */}
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 32, gap: 0 }}>
-        {steps.map((s, i) => {
-          const n = i + 1;
-          const done = n < step;
-          const active = n === step;
-          return (
-            <div key={s} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
-                <div style={{
-                  width: 32, height: 32, borderRadius: '50%', display: 'flex',
-                  alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700,
-                  backgroundColor: done ? '#2ecc71' : active ? '#3498db' : '#eee',
-                  color: done || active ? 'white' : '#aaa',
-                  transition: 'all 0.3s',
-                }}>
-                  {done ? '✓' : n}
-                </div>
-                <div style={{ fontSize: 11, color: active ? '#3498db' : done ? '#2ecc71' : '#aaa', marginTop: 4, fontWeight: active ? 600 : 400 }}>
-                  {s}
-                </div>
-              </div>
-              {i < steps.length - 1 && (
-                <div style={{ height: 2, flex: 0.8, backgroundColor: done ? '#2ecc71' : '#eee', marginBottom: 18, transition: 'background 0.3s' }} />
-              )}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+
+        {/* VIEW 1: WELCOME */}
+        {step === 1 && (
+          <div className="animate-in" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <div style={{ fontSize: 48, marginBottom: 16, textAlign: 'center' }}>👋</div>
+            <h1 style={{ fontSize: 28, fontWeight: 800, textAlign: 'center', marginBottom: 16, fontFamily: 'var(--font-display)', color: 'var(--text)' }}>
+              Bem-vindo ao<br />The Rich Couple
+            </h1>
+            <p style={{ color: 'var(--text-muted)', textAlign: 'center', marginBottom: 32, fontSize: 15, lineHeight: 1.5 }}>
+              Vamos configurar seu espaço financeiro em poucos passos para que você aproveite ao máximo nossa plataforma orgânica e premium.
+            </p>
+
+            <div style={{ backgroundColor: 'var(--surface)', padding: 24, borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text3)', marginBottom: 8, textTransform: 'uppercase' }}>Como podemos te chamar?</label>
+              <input
+                type="text"
+                autoFocus
+                value={userName}
+                onChange={e => setUserName(e.target.value)}
+                placeholder="Seu nome ou apelido"
+                style={{ width: '100%', padding: '14px', fontSize: 16, borderRadius: 'var(--radius-sm)', border: '2px solid var(--blue)', outline: 'none', backgroundColor: 'var(--bg)', color: 'var(--text)', transition: 'border 0.2s' }}
+              />
             </div>
-          );
-        })}
-      </div>
 
-      {/* ── STEP 1: Renda ── */}
-      {step === 1 && (
-        <div>
-          <h2 style={{ fontSize: 18, marginBottom: 4 }}>💵 Sua renda mensal</h2>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>
-            Adicione suas fontes de renda. Pode pular e adicionar depois.
-          </p>
+            <div style={{ marginTop: 'auto', paddingTop: 32 }}>
+              <button onClick={completeStep1} style={{ width: '100%', padding: '18px', backgroundColor: 'var(--text)', color: 'var(--bg)', border: 'none', borderRadius: 'var(--radius)', fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-display)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 10 }}>
+                Começar <span style={{ fontSize: 20 }}>→</span>
+              </button>
+            </div>
+          </div>
+        )}
 
-          {incomes.map((inc, i) => (
-            <div key={i} style={{ border: '1px solid var(--border2)', borderRadius: 'var(--radius)', padding: 16, marginBottom: 12, backgroundColor: 'var(--bg2)' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-                <div>
-                  <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 4, fontWeight: 600 }}>Descrição</div>
+        {/* VIEW 2: HOUSEHOLD */}
+        {step === 2 && (
+          <div className="animate-in" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8, color: 'var(--text)' }}>Seu Espaço Financeiro</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: 24, fontSize: 14 }}>
+              Você precisa de um "Cofre" para guardar suas finanças. Pode criar um novo ou entrar no da sua parceira(o).
+            </p>
+
+            <div style={{ display: 'flex', backgroundColor: 'var(--bg2)', padding: 4, borderRadius: 'var(--radius-sm)', marginBottom: 24 }}>
+              <button
+                onClick={() => setHouseholdMode('create')}
+                style={{ flex: 1, padding: '10px', border: 'none', borderRadius: 'var(--radius-sm)', backgroundColor: householdMode === 'create' ? 'var(--surface)' : 'transparent', color: householdMode === 'create' ? 'var(--blue)' : 'var(--text-muted)', fontWeight: householdMode === 'create' ? 700 : 500, cursor: 'pointer', transition: 'all 0.2s', boxShadow: householdMode === 'create' ? 'var(--shadow-sm)' : 'none' }}>
+                Novo Espaço
+              </button>
+              <button
+                onClick={() => setHouseholdMode('join')}
+                style={{ flex: 1, padding: '10px', border: 'none', borderRadius: 'var(--radius-sm)', backgroundColor: householdMode === 'join' ? 'var(--surface)' : 'transparent', color: householdMode === 'join' ? 'var(--blue)' : 'var(--text-muted)', fontWeight: householdMode === 'join' ? 700 : 500, cursor: 'pointer', transition: 'all 0.2s', boxShadow: householdMode === 'join' ? 'var(--shadow-sm)' : 'none' }}>
+                Entrar com Código
+              </button>
+            </div>
+
+            <div style={{ flex: 1 }}>
+              {householdMode === 'create' ? (
+                <div className="animate-in">
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text3)', marginBottom: 8 }}>Nome do Espaço</label>
                   <input
                     type="text"
-                    placeholder="Ex: Salário CLT"
-                    value={inc.description}
-                    onChange={e => setIncomes(incomes.map((x, j) => j === i ? { ...x, description: e.target.value } : x))}
-                    style={{ ...inputStyle, width: '100%' }}
+                    autoFocus
+                    value={newHouseholdName}
+                    onChange={e => setNewHouseholdName(e.target.value)}
+                    placeholder="Ex: Vida a Dois, Família Silva..."
+                    style={{ width: '100%', padding: '14px', fontSize: 16, borderRadius: 'var(--radius-sm)', border: '2px solid var(--border)', outline: 'none', backgroundColor: 'var(--surface)', color: 'var(--text)' }}
                   />
                 </div>
-                <div>
-                  <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 4, fontWeight: 600 }}>Valor (R$)</div>
+              ) : (
+                <div className="animate-in">
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text3)', marginBottom: 8 }}>Código do Parceiro(a)</label>
                   <input
-                    type="number"
-                    placeholder="5000"
-                    value={inc.amount}
-                    onChange={e => setIncomes(incomes.map((x, j) => j === i ? { ...x, amount: e.target.value } : x))}
-                    style={{ ...inputStyle, width: '100%' }}
+                    type="text"
+                    autoFocus
+                    value={joinCode}
+                    onChange={e => setJoinCode(e.target.value.toUpperCase())}
+                    placeholder="ABC123"
+                    maxLength={8}
+                    style={{ width: '100%', padding: '14px', fontSize: 24, textAlign: 'center', letterSpacing: 6, fontFamily: 'monospace', borderRadius: 'var(--radius-sm)', border: '2px dashed var(--green)', outline: 'none', backgroundColor: 'var(--surface)', color: 'var(--text)' }}
                   />
                 </div>
+              )}
+
+              {errorMsg && (
+                <div style={{ padding: '12px 16px', backgroundColor: 'rgba(255,92,124,0.1)', color: 'var(--red)', borderRadius: 'var(--radius-sm)', marginTop: 16, fontSize: 13, fontWeight: 600 }}>
+                  ⚠️ {errorMsg}
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginTop: 'auto', paddingTop: 32 }}>
+              <button disabled={loading} onClick={completeStep2} style={{ width: '100%', padding: '16px', backgroundColor: 'var(--blue)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', transition: 'opacity 0.2s', opacity: loading ? 0.7 : 1 }}>
+                {loading ? 'Criando/Validando...' : 'Avançar →'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* VIEW 3: BUDGET */}
+        {step === 3 && (
+          <div className="animate-in" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8, color: 'var(--text)' }}>Seu 1º Orçamento</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: 24, fontSize: 14 }}>
+              Defina um teto de gastos para uma categoria principal neste mês. Se não quiser agora, apenas pule.
+            </p>
+
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
+                {BUDGET_CATEGORIES.map(c => (
+                  <button
+                    key={c}
+                    onClick={() => setBudgetName(c)}
+                    style={{ padding: '8px 16px', borderRadius: 20, border: '1px solid var(--border)', backgroundColor: budgetName === c ? 'var(--blue)' : 'var(--surface)', color: budgetName === c ? 'white' : 'var(--text)', fontSize: 13, cursor: 'pointer', transition: 'all 0.2s' }}>
+                    {c}
+                  </button>
+                ))}
               </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text3)', marginBottom: 8 }}>Categoria</label>
+                <input
+                  type="text"
+                  value={budgetName}
+                  onChange={e => setBudgetName(e.target.value)}
+                  placeholder="Nome da categoria"
+                  style={{ width: '100%', padding: '14px', fontSize: 16, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', outline: 'none', backgroundColor: 'var(--surface)', color: 'var(--text)' }}
+                />
+              </div>
+
               <div>
-                <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 4, fontWeight: 600 }}>Tipo</div>
-                <select
-                  value={inc.type}
-                  onChange={e => setIncomes(incomes.map((x, j) => j === i ? { ...x, type: e.target.value } : x))}
-                  style={{ ...inputStyle, width: '100%', cursor: 'pointer' }}
-                >
-                  {INCOME_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                </select>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text3)', marginBottom: 8 }}>Teto de Gastos (R$)</label>
+                <input
+                  type="number"
+                  value={budgetAmount}
+                  onChange={e => setBudgetAmount(e.target.value)}
+                  placeholder="Ex: 1500"
+                  style={{ width: '100%', padding: '14px', fontSize: 16, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', outline: 'none', backgroundColor: 'var(--surface)', color: 'var(--text)' }}
+                />
               </div>
-              {incomes.length > 1 && (
-                <button
-                  onClick={() => setIncomes(incomes.filter((_, j) => j !== i))}
-                  style={{ marginTop: 10, background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 12 }}
-                >
-                  × Remover
-                </button>
-              )}
             </div>
-          ))}
 
-          <button
-            onClick={() => setIncomes([...incomes, { description: '', amount: '', type: 'salary' }])}
-            style={{ width: '100%', padding: '10px', border: '1px dashed #3498db', borderRadius: 'var(--radius)', backgroundColor: 'transparent', color: 'var(--blue)', cursor: 'pointer', fontSize: 14, marginBottom: 20 }}
-          >
-            + Adicionar outra renda
-          </button>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <button
-              onClick={() => setStep(2)}
-              style={{ padding: '13px', border: '1px solid var(--border)', borderRadius: 'var(--radius)', backgroundColor: 'var(--surface)', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 14 }}
-            >
-              Pular por agora
-            </button>
-            <button
-              onClick={handleSaveIncomes}
-              disabled={loading}
-              style={{ padding: '13px', border: 'none', borderRadius: 'var(--radius)', backgroundColor: loading ? '#95a5a6' : '#3498db', color: 'white', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 14 }}
-            >
-              {loading ? 'Salvando...' : 'Próximo →'}
-            </button>
+            <div style={{ marginTop: 'auto', paddingTop: 32, display: 'flex', gap: 12 }}>
+              <button disabled={loading} onClick={() => setStep(4)} style={{ padding: '16px', backgroundColor: 'var(--bg2)', color: 'var(--text-muted)', border: 'none', borderRadius: 'var(--radius-sm)', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
+                Pular
+              </button>
+              <button disabled={loading} onClick={completeStep3} style={{ flex: 1, padding: '16px', backgroundColor: 'var(--blue)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer' }}>
+                {loading ? 'Salvando...' : 'Avançar →'}
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ── STEP 2: Contas ── */}
-      {step === 2 && (
-        <div>
-          <h2 style={{ fontSize: 18, marginBottom: 4 }}>🏦 Suas contas</h2>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>
-            Cadastre suas contas bancárias para rastrear de onde saem os gastos.
-          </p>
+        {/* VIEW 4: GOAL */}
+        {step === 4 && (
+          <div className="animate-in" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8, color: 'var(--text)' }}>Uma Meta Financeira</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: 24, fontSize: 14 }}>
+              O que você quer conquistar com seu dinheiro? Defina sua primeira meta.
+            </p>
 
-          {accounts.map((acc, i) => (
-            <div key={i} style={{ border: '1px solid var(--border2)', borderRadius: 'var(--radius)', padding: 16, marginBottom: 12, backgroundColor: 'var(--bg2)' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div>
-                  <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 4, fontWeight: 600 }}>Nome</div>
-                  <input
-                    type="text"
-                    placeholder="Ex: Nubank, Inter, Bradesco..."
-                    value={acc.name}
-                    onChange={e => setAccounts(accounts.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
-                    style={{ ...inputStyle, width: '100%' }}
-                  />
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 4, fontWeight: 600 }}>Tipo</div>
-                  <select
-                    value={acc.type}
-                    onChange={e => setAccounts(accounts.map((x, j) => j === i ? { ...x, type: e.target.value } : x))}
-                    style={{ ...inputStyle, width: '100%', cursor: 'pointer' }}
-                  >
-                    {ACCOUNT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                  </select>
-                </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
+                {GOAL_SUGGESTIONS.map(c => (
+                  <button
+                    key={c}
+                    onClick={() => setGoalName(c)}
+                    style={{ padding: '8px 16px', borderRadius: 20, border: '1px solid var(--border)', backgroundColor: goalName === c ? 'var(--green)' : 'var(--surface)', color: goalName === c ? 'white' : 'var(--text)', fontSize: 13, cursor: 'pointer', transition: 'all 0.2s' }}>
+                    {c}
+                  </button>
+                ))}
               </div>
-              {accounts.length > 1 && (
-                <button
-                  onClick={() => setAccounts(accounts.filter((_, j) => j !== i))}
-                  style={{ marginTop: 10, background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 12 }}
-                >
-                  × Remover
-                </button>
-              )}
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text3)', marginBottom: 8 }}>Objetivo</label>
+                <input
+                  type="text"
+                  value={goalName}
+                  onChange={e => setGoalName(e.target.value)}
+                  placeholder="Qual o nome do seu sonho?"
+                  style={{ width: '100%', padding: '14px', fontSize: 16, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', outline: 'none', backgroundColor: 'var(--surface)', color: 'var(--text)' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text3)', marginBottom: 8 }}>Valor Alvo (R$)</label>
+                <input
+                  type="number"
+                  value={goalAmount}
+                  onChange={e => setGoalAmount(e.target.value)}
+                  placeholder="Ex: 5000"
+                  style={{ width: '100%', padding: '14px', fontSize: 16, borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', outline: 'none', backgroundColor: 'var(--surface)', color: 'var(--text)' }}
+                />
+              </div>
             </div>
-          ))}
 
-          <button
-            onClick={() => setAccounts([...accounts, { name: '', type: 'checking' }])}
-            style={{ width: '100%', padding: '10px', border: '1px dashed #3498db', borderRadius: 'var(--radius)', backgroundColor: 'transparent', color: 'var(--blue)', cursor: 'pointer', fontSize: 14, marginBottom: 20 }}
-          >
-            + Adicionar outra conta
-          </button>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <button
-              onClick={() => setStep(1)}
-              style={{ padding: '13px', border: '1px solid var(--border)', borderRadius: 'var(--radius)', backgroundColor: 'var(--surface)', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 14 }}
-            >
-              ← Voltar
-            </button>
-            <button
-              onClick={handleSaveAccounts}
-              disabled={loading}
-              style={{ padding: '13px', border: 'none', borderRadius: 'var(--radius)', backgroundColor: loading ? '#95a5a6' : '#3498db', color: 'white', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 14 }}
-            >
-              {loading ? 'Salvando...' : 'Próximo →'}
-            </button>
-          </div>
-
-          <button
-            onClick={() => setStep(3)}
-            style={{ width: '100%', marginTop: 10, padding: '10px', border: 'none', background: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13 }}
-          >
-            Pular por agora
-          </button>
-        </div>
-      )}
-
-      {/* ── STEP 3: Recorrências ── */}
-      {step === 3 && (
-        <div>
-          <h2 style={{ fontSize: 18, marginBottom: 4 }}>🔁 Contas fixas mensais</h2>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>
-            Adicione contas que se repetem todo mês. O app vai lembrá-los de pagar.
-          </p>
-
-          {/* Sugestões rápidas */}
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>Sugestões rápidas:</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {RECURRENCE_SUGGESTIONS.map(s => (
-                <button
-                  key={s.name}
-                  onClick={() => {
-                    const alreadyAdded = recurrences.some(r => r.name === s.name);
-                    if (!alreadyAdded) {
-                      setRecurrences([...recurrences.filter(r => r.name.trim() || r.amount.trim()), { name: s.name, amount: '', due_day: '1' }]);
-                    }
-                  }}
-                  style={{
-                    padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 20,
-                    backgroundColor: recurrences.some(r => r.name === s.name) ? '#e8f4fd' : 'white',
-                    cursor: 'pointer', fontSize: 13,
-                    color: recurrences.some(r => r.name === s.name) ? '#3498db' : '#555',
-                  }}
-                >
-                  {s.name}
-                </button>
-              ))}
+            <div style={{ marginTop: 'auto', paddingTop: 32, display: 'flex', gap: 12 }}>
+              <button disabled={loading} onClick={() => setStep(5)} style={{ padding: '16px', backgroundColor: 'var(--bg2)', color: 'var(--text-muted)', border: 'none', borderRadius: 'var(--radius-sm)', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
+                Pular
+              </button>
+              <button disabled={loading} onClick={completeStep4} style={{ flex: 1, padding: '16px', backgroundColor: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer' }}>
+                {loading ? 'Salvando...' : 'Avançar →'}
+              </button>
             </div>
           </div>
+        )}
 
-          {recurrences.map((rec, i) => (
-            <div key={i} style={{ border: '1px solid var(--border2)', borderRadius: 'var(--radius)', padding: 16, marginBottom: 12, backgroundColor: 'var(--bg2)' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 10 }}>
-                <div>
-                  <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 4, fontWeight: 600 }}>Nome</div>
-                  <input
-                    type="text"
-                    placeholder="Netflix"
-                    value={rec.name}
-                    onChange={e => setRecurrences(recurrences.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
-                    style={{ ...inputStyle, width: '100%' }}
-                  />
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 4, fontWeight: 600 }}>Valor (R$)</div>
-                  <input
-                    type="number"
-                    placeholder="55,90"
-                    value={rec.amount}
-                    onChange={e => setRecurrences(recurrences.map((x, j) => j === i ? { ...x, amount: e.target.value } : x))}
-                    style={{ ...inputStyle, width: '100%' }}
-                  />
-                </div>
-                <div>
-                  <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 4, fontWeight: 600 }}>Dia venc.</div>
-                  <input
-                    type="number"
-                    placeholder="1"
-                    min="1"
-                    max="28"
-                    value={rec.due_day}
-                    onChange={e => setRecurrences(recurrences.map((x, j) => j === i ? { ...x, due_day: e.target.value } : x))}
-                    style={{ ...inputStyle, width: '100%' }}
-                  />
+        {/* VIEW 5: PIN & SECURITY */}
+        {step === 5 && (
+          <div className="animate-in" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8, color: 'var(--text)' }}>Segurança Máxima</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: 24, fontSize: 14 }}>
+              Nós não temos acesso aos seus dados financeiros. Defina um PIN de acesso único (AES-256) para criptografar o banco.
+            </p>
+
+            <div style={{ flex: 1 }}>
+              <div style={{ padding: 24, backgroundColor: 'rgba(156, 136, 255,0.08)', borderRadius: 'var(--radius)', border: '1px solid rgba(156, 136, 255,0.3)', marginBottom: 24, textAlign: 'center' }}>
+                <div style={{ fontSize: 40, marginBottom: 8 }}>🔐</div>
+                <div style={{ fontSize: 13, color: '#6c5ce7', fontWeight: 600 }}>Criptografia de Ponta a Ponta Ativada</div>
+              </div>
+
+              <div className="animate-in">
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--text3)', marginBottom: 8 }}>PIN do Cofre (4 a 6 dígitos)</label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  autoFocus
+                  value={vaultPin}
+                  onChange={e => setVaultPin(e.target.value)}
+                  placeholder="••••"
+                  style={{ width: '100%', padding: '16px', fontSize: 28, letterSpacing: 8, textAlign: 'center', borderRadius: 'var(--radius-sm)', border: '2px solid var(--purple)', outline: 'none', backgroundColor: 'var(--surface)', color: 'var(--text)', transition: 'border 0.2s' }}
+                />
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8, textAlign: 'center' }}>
+                  Aviso: Se você perder o PIN, jamais poderemos recuperar seus dados. Salve bem!
                 </div>
               </div>
-              {recurrences.length > 1 && (
-                <button
-                  onClick={() => setRecurrences(recurrences.filter((_, j) => j !== i))}
-                  style={{ marginTop: 10, background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 12 }}
-                >
-                  × Remover
-                </button>
+
+              {errorMsg && (
+                <div style={{ padding: '12px 16px', backgroundColor: 'rgba(255,92,124,0.1)', color: 'var(--red)', borderRadius: 'var(--radius-sm)', marginTop: 16, fontSize: 13, fontWeight: 600 }}>
+                  ⚠️ {errorMsg}
+                </div>
               )}
             </div>
-          ))}
 
-          <button
-            onClick={() => setRecurrences([...recurrences, { name: '', amount: '', due_day: '1' }])}
-            style={{ width: '100%', padding: '10px', border: '1px dashed #3498db', borderRadius: 'var(--radius)', backgroundColor: 'transparent', color: 'var(--blue)', cursor: 'pointer', fontSize: 14, marginBottom: 20 }}
-          >
-            + Adicionar outra recorrência
-          </button>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <button
-              onClick={() => setStep(2)}
-              style={{ padding: '13px', border: '1px solid var(--border)', borderRadius: 'var(--radius)', backgroundColor: 'var(--surface)', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 14 }}
-            >
-              ← Voltar
-            </button>
-            <button
-              onClick={handleSaveRecurrences}
-              disabled={loading}
-              style={{ padding: '13px', border: 'none', borderRadius: 'var(--radius)', backgroundColor: loading ? '#95a5a6' : '#2ecc71', color: 'white', cursor: loading ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 16 }}
-            >
-              {loading ? 'Salvando...' : '🚀 Concluir!'}
-            </button>
+            <div style={{ marginTop: 'auto', paddingTop: 32, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <button disabled={loading} onClick={finishOnboarding} style={{ width: '100%', padding: '18px', backgroundColor: 'var(--purple)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', fontSize: 16, fontWeight: 800, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-display)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8 }}>
+                {loading ? 'Finalizando...' : 'Concluir Setup 🎉'}
+              </button>
+              <button disabled={loading} onClick={() => finishOnboarding()} style={{ padding: '12px', backgroundColor: 'transparent', color: 'var(--text-muted)', border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+                Deixar desprotegido por agora
+              </button>
+            </div>
           </div>
+        )}
 
-          <button
-            onClick={() => router.push('/dashboard')}
-            style={{ width: '100%', marginTop: 10, padding: '10px', border: 'none', background: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 13 }}
-          >
-            Pular e ir para o dashboard
-          </button>
-        </div>
-      )}
+      </div>
     </main>
   );
 }

@@ -117,7 +117,7 @@ export default function Dashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/login'); return; }
       const { data: members, error } = await supabase.from('household_members').select('household_id').eq('user_id', user.id);
-      if (error || !members || members.length === 0) { router.push('/setup'); return; }
+      if (error || !members || members.length === 0) { router.push('/onboarding'); return; }
       init(activeGroupId || members[0].household_id);
     }
     bootstrap();
