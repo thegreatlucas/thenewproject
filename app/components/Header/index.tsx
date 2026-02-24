@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 interface HeaderProps {
   title?: string;
   backHref?: string;
+  action?: { label: string; href: string };
   showHousehold?: boolean;
   household?: any;
   onHouseholdChange?: (householdId: string) => void;
@@ -15,6 +16,7 @@ interface HeaderProps {
 export default function Header({
   title = 'Finanças',
   backHref,
+  action,
   showHousehold = true,
   household,
   onHouseholdChange,
@@ -206,6 +208,27 @@ export default function Header({
               ⋮
             </button>
 
+            {action && (
+              <Link
+                href={action.href}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '40px',
+                  height: '40px',
+                  backgroundColor: 'var(--primary)',
+                  color: 'white',
+                  borderRadius: '8px',
+                  textDecoration: 'none',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                }}
+              >
+                +
+              </Link>
+            )}
+
             {/* Dropdown Menu */}
             {showThemeMenu && (
               <div className="mobile-dropdown">
@@ -351,6 +374,26 @@ export default function Header({
 
         {/* Right: Action Buttons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {action && (
+            <Link
+              href={action.href}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: 'var(--primary)',
+                color: 'white',
+                border: 'none',
+                borderRadius: 'var(--radius)',
+                textDecoration: 'none',
+                cursor: 'pointer',
+                fontSize: 14,
+                fontWeight: 600,
+                transition: 'all 0.2s',
+              }}
+            >
+              {action.label}
+            </Link>
+          )}
+
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
