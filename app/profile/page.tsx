@@ -156,6 +156,27 @@ export default function ProfilePage() {
     router.push('/login');
   }
 
+  async function handleDeleteAccount() {
+    if (!confirm('Tem certeza absoluta que deseja EXCLUIR sua conta? Todos os SEUS dados serão removidos. Esta ação é irreversível.')) return;
+    setSaving(true);
+
+    // Chama a Edge Function criada no Supabase para deletar a conta real no Auth
+    const { error } = await supabase.functions.invoke('delete-account');
+
+    if (error) {
+      console.error('Erro na Edge Function:', error);
+      // Fallback: apaga o profile e signout
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('household_members').delete().eq('user_id', user.id);
+        await supabase.from('profiles').delete().eq('id', user.id);
+      }
+    }
+
+    await supabase.auth.signOut();
+    router.push('/login');
+  }
+
   function copyInviteCode() {
     if (!inviteCode) return;
     navigator.clipboard.writeText(inviteCode);
@@ -303,7 +324,7 @@ export default function ProfilePage() {
             <span style={{ fontSize: 20 }}>🚪</span>
             <div>Sair da conta</div>
           </ActionBtn>
-          <ActionBtn onClick={() => router.push('/setup?deleteAccount=1')} danger>
+          <ActionBtn onClick={handleDeleteAccount} danger>
             <span style={{ fontSize: 20 }}>🗑️</span>
             <div>
               <div>Excluir minha conta</div>
