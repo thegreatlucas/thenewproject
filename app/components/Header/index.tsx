@@ -343,7 +343,7 @@ export default function Header({
                   <div
                     className="header-dropdown-item"
                     onClick={() => {
-                      router.push('/settings');
+                      router.push('/profile');
                       setShowThemeMenu(false);
                     }}
                   >
