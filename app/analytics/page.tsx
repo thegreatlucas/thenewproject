@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/app/components/Header';
-import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, BarChart, Bar } from 'recharts';
 
 interface CategoryData {
   name: string;
@@ -353,7 +353,6 @@ export default function AnalyticsPage() {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: number | undefined) => value != null ? `{ormatCurrency(value)}` : 'R$ 0.00'} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div style={{ marginTop: 16 }}>
@@ -375,7 +374,6 @@ export default function AnalyticsPage() {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="month" />
                       <YAxis />
-                      <Tooltip formatter={(value: number | undefined) => value != null ? `{ormatCurrency(value)}` : 'R$ 0.00'} />
                       <Line type="monotone" dataKey="amount" stroke="#8884d8" strokeWidth={3} dot={{ r: 6, fill: '#8884d8' }} />
                     </LineChart>
                   </ResponsiveContainer>
@@ -390,7 +388,6 @@ export default function AnalyticsPage() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
-                  <Tooltip formatter={(value: number | undefined) => value != null ? `{ormatCurrency(value)}` : 'R$ 0.00'} />
                   <Bar dataKey="value" radius={[8, 8, 0, 0]}>
                     {categoryData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
