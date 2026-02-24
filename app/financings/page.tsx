@@ -443,7 +443,7 @@ export default function FinancingsPage() {
                 {interStatus && (
                   <div style={{ marginBottom: 12, fontSize: 13, color: interStatus.pending > 0 ? '#e67e22' : '#2ecc71', fontWeight: 'bold' }}>
                     🏢 {interStatus.pending > 0 ? `${interStatus.pending} intermediária(s) pendente(s)` : 'Todas intermediárias pagas'}
-                    {' · '}Total: R$ {interStatus.formatCurrency(totalAmount)}
+                    {' · '}Total: {formatCurrency(interStatus.totalAmount)}
                   </div>
                 )}
 
