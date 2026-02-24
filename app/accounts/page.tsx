@@ -229,9 +229,11 @@ export default function AccountsPage() {
               <div style={{ marginTop: 8, backgroundColor: '#fff3cd', padding: 10, borderRadius: 6, fontSize: 13 }}>
                 🍽️ Contas de vale têm saldo separado e só podem ser usadas para gastos de alimentação.
               </div>
-            )}
-            <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Saldo atual (R$):</label>
+      )}
+      </div>
+
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ display: 'block', marginBottom: 4, fontWeight: 'bold' }}>Saldo atual (R$):</label>
             <input
               type="number" value={formData.initial_balance}
               onChange={(e) => setFormData({ ...formData, initial_balance: e.target.value })}
