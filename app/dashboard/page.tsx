@@ -14,20 +14,6 @@ function Skeleton({ w = '100%', h = 20 }: { w?: string; h?: number }) {
   return <div className="skeleton" style={{ width: w, height: h, borderRadius: 'var(--radius-sm)' }} />;
 }
 
-function KpiCard({ label, value, sub, accent, loading }: {
-  label: string; value: string; sub?: string; accent: string; loading: boolean;
-}) {
-  return (
-    <div className="card animate-in" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--text-muted)' }}>{label}</span>
-      {loading ? <Skeleton h={26} w="70%" /> : (
-        <span style={{ fontSize: 20, fontWeight: 800, color: accent, fontFamily: 'var(--font-display)', lineHeight: 1 }}>{value}</span>
-      )}
-      {sub && !loading && <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{sub}</span>}
-    </div>
-  );
-}
-
 function SectionHeader({ title, href, linkLabel = 'Ver tudo →' }: { title: string; href: string; linkLabel?: string }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
@@ -299,18 +285,25 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* KPI Cards */}
-        <div className="stagger" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-          <KpiCard label="Renda" value={formatCurrency(totalIncome)} accent="var(--green)" loading={loading}
-            sub={totalIncome === 0 ? 'Cadastre sua renda' : undefined} />
-          <KpiCard label="Gastos" value={formatCurrency(totalExpenses)} accent="var(--red)" loading={loading}
-            sub={sharedExpenses > 0 ? `${formatCurrency(sharedExpenses)} compartilhado` : undefined} />
-          <KpiCard label="Saldo"
-            value={balance_display === null ? '—' : formatCurrency(balance_display)}
-            accent={balance_display === null ? 'var(--text-muted)' : balance_display >= 0 ? 'var(--blue)' : 'var(--red)'}
-            loading={loading}
-            sub={balance_display === null ? 'Cadastre sua renda' : undefined} />
-        </div>
+          <div className="card animate-in stagger" style={{ display: 'flex', flexDirection: 'column', gap: 0, padding: 0, overflow: 'hidden' }}>
+            {[
+              { label: 'Renda',  value: formatCurrency(totalIncome),   accent: 'var(--green)', sub: totalIncome === 0 ? 'Cadastre sua renda' : undefined },
+              { label: 'Gastos', value: formatCurrency(totalExpenses), accent: 'var(--red)',   sub: sharedExpenses > 0 ? `${formatCurrency(sharedExpenses)} compartilhado` : undefined },
+              { label: 'Saldo',  value: balance_display === null ? '—' : formatCurrency(balance_display), accent: balance_display === null ? 'var(--text-muted)' : balance_display >= 0 ? 'var(--blue)' : 'var(--red)', sub: balance_display === null ? 'Cadastre sua renda' : undefined },
+            ].map((k, i, arr) => (
+              <div key={k.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', borderBottom: i < arr.length - 1 ? '1px solid var(--border2)' : 'none' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--text-muted)' }}>{k.label}</span>
+                <div style={{ textAlign: 'right' }}>
+                  {loading ? <div className="skeleton" style={{ width: 80, height: 20, borderRadius: 'var(--radius-sm)' }} /> : (
+                    <>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: k.accent, fontFamily: 'var(--font-display)' }}>{k.value}</div>
+                      {k.sub && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{k.sub}</div>}
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
 
         {/* Orçamento */}
         {(budgetSummary || loading) && (
