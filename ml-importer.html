@@ -628,39 +628,94 @@ function reset() {
   processedImages = [];
 }
 
-// ─── EXTRACT ITEM ID FROM URL ──────────────────────────────
-function extractItemId(url) {
-  // handles formats like MLB1234567890, MCO..., etc.
-  const match = url.match(/([A-Z]{2,3}\d{7,15})/i);
-  if (match) return match[1].toUpperCase();
-  // fallback: last numeric segment
-  const nums = url.match(/\/(\d{7,15})/);
-  if (nums) return 'MLB' + nums[1];
+// ─── PARSE ML URL ──────────────────────────────────────────
+function parseMLUrl(url) {
+  // Tipo 1: /p/MLB29161377 (product page - varios anuncios)
+  const productPage = url.match(/\/p\/(M[A-Z]{2}\d{5,15})/i);
+  if (productPage) return { type: 'product', id: productPage[1].toUpperCase() };
+
+  // Tipo 2: ID no path /MLB1234567890
+  const directId = url.match(/\/(M[A-Z]{2}\d{5,15})/i);
+  if (directId) return { type: 'item', id: directId[1].toUpperCase() };
+
+  // Tipo 3: ID em qualquer posicao
+  const anyId = url.match(/(M[A-Z]{2}\d{5,15})/i);
+  if (anyId) return { type: 'item', id: anyId[1].toUpperCase() };
+
   return null;
+}
+
+// ─── CORS PROXY FETCH ──────────────────────────────────────
+// Tenta fetch direto primeiro; se falhar por CORS/403, usa proxy
+const PROXIES = [
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+];
+
+async function fetchWithProxy(url) {
+  // 1) Tenta direto (funciona em alguns ambientes)
+  try {
+    const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (r.ok) return r.json();
+  } catch (_) { /* CORS, cai no proxy */ }
+
+  // 2) Tenta cada proxy em sequência
+  for (const makeProxy of PROXIES) {
+    try {
+      const r = await fetch(makeProxy(url));
+      if (r.ok) {
+        const text = await r.text();
+        return JSON.parse(text);
+      }
+    } catch (_) { continue; }
+  }
+  throw new Error(`Não foi possível buscar: ${url}`);
 }
 
 // ─── FETCH ML DATA ─────────────────────────────────────────
 async function fetchMLProduct(itemId) {
-  const r = await fetch(`https://api.mercadolibre.com/items/${itemId}`);
-  if (!r.ok) throw new Error(`Anúncio não encontrado (${r.status}). Verifique a URL.`);
-  return r.json();
+  // Tenta item direto
+  const url = `https://api.mercadolibre.com/items/${itemId}`;
+  try {
+    return await fetchWithProxy(url);
+  } catch (e) {
+    throw new Error(`Anúncio não encontrado ou bloqueado. Verifique a URL e tente novamente.\nDetalhe: ${e.message}`);
+  }
+}
+
+async function fetchMLProductBySlug(slug) {
+  // Busca pelo endpoint de produto (p/MLB...) que é mais aberto
+  const searchUrl = `https://api.mercadolibre.com/products/${slug}`;
+  try {
+    return await fetchWithProxy(searchUrl);
+  } catch (_) { return null; }
 }
 
 async function fetchMLDescription(itemId) {
   try {
-    const r = await fetch(`https://api.mercadolibre.com/items/${itemId}/description`);
-    if (!r.ok) return '';
-    const d = await r.json();
+    const d = await fetchWithProxy(`https://api.mercadolibre.com/items/${itemId}/description`);
     return d.plain_text || d.text || '';
   } catch { return ''; }
 }
 
 async function fetchMLSeller(sellerId) {
   try {
-    const r = await fetch(`https://api.mercadolibre.com/users/${sellerId}`);
-    if (!r.ok) return {};
-    return r.json();
+    return await fetchWithProxy(`https://api.mercadolibre.com/users/${sellerId}`);
   } catch { return {}; }
+}
+
+// Resolve URL com /p/MLB... (product page) para item real
+async function resolveProductPageToItem(productId) {
+  // /p/MLB29161377 -> busca itens desse produto
+  try {
+    const data = await fetchWithProxy(
+      `https://api.mercadolibre.com/products/${productId}/items?limit=1`
+    );
+    const items = data?.results || data?.items || [];
+    if (items.length) return items[0].id || items[0];
+    // fallback: tenta o próprio productId como item
+    return productId.replace(/^MLB/i, 'MLB');
+  } catch { return null; }
 }
 
 // ─── IMAGE PROCESSING ─────────────────────────────────────
@@ -752,18 +807,28 @@ Retorne APENAS o texto da descrição, sem títulos extras.`;
 // ─── MAIN FLOW ─────────────────────────────────────────────
 async function startFetch() {
   const url = document.getElementById('url-input').value.trim();
-  if (!url) { showError('Cole a URL do anúncio antes de continuar.'); return; }
+  if (!url) { showError('Cole a URL do anuncio antes de continuar.'); return; }
 
-  const itemId = extractItemId(url);
-  if (!itemId) { showError('Não consegui identificar o ID do anúncio. Cole a URL completa do produto.'); return; }
+  const parsed = parseMLUrl(url);
+  if (!parsed) { showError('Nao consegui identificar o ID do anuncio. Cole a URL completa do produto.'); return; }
 
   document.getElementById('btn-fetch').disabled = true;
   document.getElementById('error-container').innerHTML = '';
   document.getElementById('progress-wrap').classList.add('show');
 
   try {
-    // STEP 1: Fetch ML API
     setProgress(10, 'Consultando API do Mercado Livre...', 1);
+
+    let itemId = parsed.id;
+
+    // Se for product page (/p/MLB...), resolve para um item real
+    if (parsed.type === 'product') {
+      setProgress(15, 'Resolvendo product page para item...', 1);
+      const resolved = await resolveProductPageToItem(parsed.id);
+      if (resolved) itemId = resolved;
+      // se nao resolveu, tenta usar o product id direto como item id
+    }
+
     const [product, originalDesc] = await Promise.all([
       fetchMLProduct(itemId),
       fetchMLDescription(itemId)
@@ -776,7 +841,7 @@ async function startFetch() {
     productData = { product, originalDesc, seller };
 
     // Switch to result screen
-    setProgress(50, 'Dados carregados! Gerando descrição com IA...', 3);
+    setProgress(50, 'Dados carregados! Gerando descricao com IA...', 3);
     populateBasicFields(product, seller);
     showStep('result');
 
@@ -789,10 +854,10 @@ async function startFetch() {
     document.getElementById('f-desc').value = desc;
 
     // STEP 4: Process images
-    setProgress(75, 'Processando imagens para 2000×2000...', 4);
+    setProgress(75, 'Processando imagens para 2000x2000...', 4);
     await processImages(product.pictures || []);
 
-    setProgress(100, 'Concluído!', 5);
+    setProgress(100, 'Concluido!', 5);
     setTimeout(() => {
       document.getElementById('progress-wrap').classList.remove('show');
     }, 1500);
