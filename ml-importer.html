@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ML Importer</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0c0c0f;
+    --surface: #131318;
+    --surface2: #1a1a22;
+    --border: #2a2a38;
+    --accent: #f0c040;
+    --accent2: #ff6b35;
+    --text: #e8e8f0;
+    --muted: #7070a0;
+    --green: #4ade80;
+    --red: #f87171;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    font-size: 16px;
+  }
+  .logo span { color: var(--accent); }
+  .badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  /* MAIN LAYOUT */
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* STEP SECTION */
+  .step {
+    display: none;
+    animation: fadeIn 0.3s ease;
+  }
+  .step.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  /* INPUT SECTION */
+  .input-section {
+    text-align: center;
+    padding: 60px 20px;
+  }
+  .input-section h1 {
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.1;
+    margin-bottom: 12px;
+  }
+  .input-section h1 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+  .input-section p {
+    color: var(--muted);
+    font-size: 0.95rem;
+    margin-bottom: 36px;
+  }
+  .url-form {
+    display: flex;
+    gap: 0;
+    max-width: 640px;
+    margin: 0 auto 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .url-form:focus-within { border-color: var(--accent); }
+  .url-form input {
+    flex: 1;
+    background: var(--surface);
+    border: none;
+    outline: none;
+    padding: 16px 20px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+  }
+  .url-form input::placeholder { color: var(--muted); }
+  .btn-fetch {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 16px 28px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    letter-spacing: -0.01em;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+  .btn-fetch:hover { background: #f5d060; }
+  .btn-fetch:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+  .hint {
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* PROGRESS */
+  .progress-bar-wrap {
+    margin: 32px auto;
+    max-width: 500px;
+    display: none;
+  }
+  .progress-bar-wrap.show { display: block; }
+  .progress-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+    text-align: left;
+  }
+  .progress-track {
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.4s ease;
+  }
+  .progress-steps {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 12px;
+  }
+  .progress-step {
+    font-size: 0.7rem;
+    font-family: 'DM Mono', monospace;
+    color: var(--muted);
+  }
+  .progress-step.done { color: var(--green); }
+  .progress-step.active { color: var(--accent); }
+
+  /* RESULT LAYOUT */
+  .result-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .result-header h2 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+  .result-header h2 span { color: var(--accent); }
+  .btn-reset {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-family: 'Syne', sans-serif;
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.15s;
+  }
+  .btn-reset:hover { border-color: var(--accent); color: var(--accent); }
+
+  .result-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 700px) { .result-grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .card-full { grid-column: 1 / -1; }
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .card-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+  .card-body { padding: 18px; }
+
+  .field-group { margin-bottom: 16px; }
+  .field-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .field-value {
+    font-size: 0.9rem;
+    color: var(--text);
+    line-height: 1.5;
+    word-break: break-word;
+  }
+  .field-value.big {
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--accent);
+  }
+  .field-value.mono {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  /* COPY BUTTON */
+  .btn-copy {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-family: 'DM Mono', monospace;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-copy:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-copy.copied { border-color: var(--green); color: var(--green); }
+
+  /* ATTRIBUTES TABLE */
+  .attr-table { width: 100%; border-collapse: collapse; }
+  .attr-table tr:not(:last-child) td { border-bottom: 1px solid var(--border); }
+  .attr-table td {
+    padding: 8px 0;
+    font-size: 0.82rem;
+    vertical-align: top;
+  }
+  .attr-table td:first-child {
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    width: 45%;
+    padding-right: 12px;
+  }
+
+  /* DESCRIPTION TEXTAREA */
+  .desc-textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    line-height: 1.7;
+    padding: 16px;
+    resize: vertical;
+    min-height: 200px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .desc-textarea:focus { border-color: var(--accent); }
+  .generating-pulse {
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* IMAGES GRID */
+  .images-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 10px;
+  }
+  .img-card {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--surface2);
+    aspect-ratio: 1;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .img-card:hover { border-color: var(--accent); }
+  .img-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+  .img-card .img-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .img-card:hover .img-overlay { opacity: 1; }
+  .img-overlay span {
+    font-size: 0.65rem;
+    font-family: 'DM Mono', monospace;
+    color: #fff;
+  }
+  .img-dl-btn {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .img-dl-btn:hover { background: #f5d060; }
+  .img-dl-btn.processing { background: var(--border); color: var(--muted); cursor: not-allowed; }
+
+  /* STATUS TAG */
+  .status-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+  }
+  .status-active { background: rgba(74,222,128,0.12); color: var(--green); border: 1px solid rgba(74,222,128,0.2); }
+  .status-paused { background: rgba(248,113,113,0.12); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
+
+  /* ERROR */
+  .error-box {
+    background: rgba(248,113,113,0.08);
+    border: 1px solid rgba(248,113,113,0.25);
+    color: var(--red);
+    border-radius: 10px;
+    padding: 16px 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    margin: 20px auto;
+    max-width: 600px;
+    text-align: left;
+  }
+
+  /* CANVAS for upscale (hidden) */
+  #upscale-canvas { display: none; }
+
+  /* FOOTER */
+  footer {
+    text-align: center;
+    padding: 32px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    border-top: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">📦</div>
+    <div>ML<span>Importer</span></div>
+  </div>
+  <span class="badge">v1.0 · BETA</span>
+</header>
+
+<main>
+  <!-- STEP 0: INPUT -->
+  <div class="step active" id="step-input">
+    <div class="input-section">
+      <h1>Cole o link do<br><em>Mercado Livre</em></h1>
+      <p>Extraímos os dados, geramos descrição SEO+GEO com IA e processamos as imagens em 2000×2000</p>
+
+      <div class="url-form">
+        <input type="text" id="url-input" placeholder="https://www.mercadolivre.com.br/..." />
+        <button class="btn-fetch" id="btn-fetch" onclick="startFetch()">Importar</button>
+      </div>
+      <div class="hint">Cole a URL do anúncio · produto.com.br ou mercadolivre.com.br</div>
+
+      <div class="progress-bar-wrap" id="progress-wrap">
+        <div class="progress-label" id="progress-label">Buscando anúncio...</div>
+        <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+        <div class="progress-steps">
+          <span class="progress-step" id="ps1">① API ML</span>
+          <span class="progress-step" id="ps2">② Dados</span>
+          <span class="progress-step" id="ps3">③ IA desc.</span>
+          <span class="progress-step" id="ps4">④ Imagens</span>
+        </div>
+      </div>
+
+      <div id="error-container"></div>
+    </div>
+  </div>
+
+  <!-- STEP 1: RESULT -->
+  <div class="step" id="step-result">
+    <div class="result-header">
+      <h2>Produto <span>importado</span></h2>
+      <button class="btn-reset" onclick="reset()">← Novo anúncio</button>
+    </div>
+
+    <div class="result-grid">
+
+      <!-- TÍTULO E BÁSICOS -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Identificação</span>
+          <button class="btn-copy" onclick="copyField('titulo')">copiar</button>
+        </div>
+        <div class="card-body">
+          <div class="field-group">
+            <div class="field-label">Título</div>
+            <div class="field-value" id="f-titulo">—</div>
+          </div>
+          <div class="field-group">
+            <div class="field-label">ID / SKU</div>
+            <div class="field-value mono" id="f-id">—</div>
+          </div>
+          <div class="field-group">
+            <div class="field-label">Status</div>
+            <div id="f-status">—</div>
+          </div>
+          <div class="field-group">
+            <div class="field-label">Categoria ML</div>
+            <div class="field-value mono" id="f-categoria">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PREÇOS -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Precificação</span>
+        </div>
+        <div class="card-body">
+          <div class="field-group">
+            <div class="field-label">Preço atual</div>
+            <div class="field-value big" id="f-preco">—</div>
+          </div>
+          <div class="field-group">
+            <div class="field-label">Preço original</div>
+            <div class="field-value" id="f-preco-orig">—</div>
+          </div>
+          <div class="field-group">
+            <div class="field-label">Condição</div>
+            <div class="field-value" id="f-condicao">—</div>
+          </div>
+          <div class="field-group">
+            <div class="field-label">Estoque disponível</div>
+            <div class="field-value" id="f-estoque">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ATRIBUTOS -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Atributos técnicos</span>
+          <button class="btn-copy" onclick="copyAttrs()">copiar tudo</button>
+        </div>
+        <div class="card-body" style="max-height:280px;overflow-y:auto;">
+          <table class="attr-table" id="attr-table">
+            <tr><td colspan="2" style="color:var(--muted);font-size:0.8rem;">—</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- VENDEDOR -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Vendedor</span>
+        </div>
+        <div class="card-body">
+          <div class="field-group">
+            <div class="field-label">Apelido</div>
+            <div class="field-value" id="f-seller">—</div>
+          </div>
+          <div class="field-group">
+            <div class="field-label">Reputação</div>
+            <div class="field-value" id="f-rep">—</div>
+          </div>
+          <div class="field-group">
+            <div class="field-label">Permalink</div>
+            <div class="field-value mono" style="font-size:0.7rem;word-break:break-all;" id="f-link">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DESCRIÇÃO IA -->
+      <div class="card card-full">
+        <div class="card-header">
+          <span class="card-title">Descrição SEO + GEO · gerada por IA</span>
+          <button class="btn-copy" onclick="copyDesc()">copiar</button>
+        </div>
+        <div class="card-body">
+          <div id="desc-generating" class="generating-pulse" style="display:none;">⚡ Gerando descrição otimizada...</div>
+          <textarea class="desc-textarea" id="f-desc" placeholder="Aguardando dados..."></textarea>
+        </div>
+      </div>
+
+      <!-- IMAGENS -->
+      <div class="card card-full">
+        <div class="card-header">
+          <span class="card-title">Imagens · 2000×2000px</span>
+          <button class="btn-copy" onclick="downloadAllImages()" style="border-color:var(--accent);color:var(--accent);">⬇ baixar todas</button>
+        </div>
+        <div class="card-body">
+          <div class="images-grid" id="images-grid">
+            <div style="color:var(--muted);font-size:0.8rem;font-family:'DM Mono',monospace;">Aguardando...</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<canvas id="upscale-canvas"></canvas>
+<footer>ML Importer · Powered by Mercado Livre API + Claude AI · Use responsável</footer>
+
+<script>
+// ─── STATE ─────────────────────────────────────────────────
+let productData = null;
+let processedImages = []; // { blob, filename }
+
+// ─── UTIL ──────────────────────────────────────────────────
+function setProgress(pct, label, step) {
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = label;
+  ['ps1','ps2','ps3','ps4'].forEach((id, i) => {
+    const el = document.getElementById(id);
+    el.className = 'progress-step ' + (i+1 < step ? 'done' : i+1 === step ? 'active' : '');
+  });
+}
+
+function showError(msg) {
+  document.getElementById('error-container').innerHTML =
+    `<div class="error-box">⚠ ${msg}</div>`;
+}
+
+function reset() {
+  document.getElementById('step-result').classList.remove('active');
+  document.getElementById('step-input').classList.add('active');
+  document.getElementById('url-input').value = '';
+  document.getElementById('error-container').innerHTML = '';
+  document.getElementById('progress-wrap').classList.remove('show');
+  document.getElementById('btn-fetch').disabled = false;
+  productData = null;
+  processedImages = [];
+}
+
+// ─── EXTRACT ITEM ID FROM URL ──────────────────────────────
+function extractItemId(url) {
+  // handles formats like MLB1234567890, MCO..., etc.
+  const match = url.match(/([A-Z]{2,3}\d{7,15})/i);
+  if (match) return match[1].toUpperCase();
+  // fallback: last numeric segment
+  const nums = url.match(/\/(\d{7,15})/);
+  if (nums) return 'MLB' + nums[1];
+  return null;
+}
+
+// ─── FETCH ML DATA ─────────────────────────────────────────
+async function fetchMLProduct(itemId) {
+  const r = await fetch(`https://api.mercadolibre.com/items/${itemId}`);
+  if (!r.ok) throw new Error(`Anúncio não encontrado (${r.status}). Verifique a URL.`);
+  return r.json();
+}
+
+async function fetchMLDescription(itemId) {
+  try {
+    const r = await fetch(`https://api.mercadolibre.com/items/${itemId}/description`);
+    if (!r.ok) return '';
+    const d = await r.json();
+    return d.plain_text || d.text || '';
+  } catch { return ''; }
+}
+
+async function fetchMLSeller(sellerId) {
+  try {
+    const r = await fetch(`https://api.mercadolibre.com/users/${sellerId}`);
+    if (!r.ok) return {};
+    return r.json();
+  } catch { return {}; }
+}
+
+// ─── IMAGE PROCESSING ─────────────────────────────────────
+function getHighResUrl(url) {
+  // ML images: replace -O.jpg or -I.jpg with -O.jpg (original), or boost to 2000
+  return url
+    .replace(/-[A-Z]\.(jpg|jpeg|png|webp)/i, '-O.$1')
+    .replace('http://', 'https://');
+}
+
+async function upscaleImage(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.getElementById('upscale-canvas');
+      canvas.width = 2000;
+      canvas.height = 2000;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 2000, 2000);
+      // center crop / fit
+      const scale = Math.min(2000 / img.width, 2000 / img.height);
+      const w = img.width * scale;
+      const h = img.height * scale;
+      const x = (2000 - w) / 2;
+      const y = (2000 - h) / 2;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, x, y, w, h);
+      canvas.toBlob(blob => {
+        if (blob) resolve(blob);
+        else reject(new Error('Canvas toBlob failed'));
+      }, 'image/jpeg', 0.95);
+    };
+    img.onerror = () => reject(new Error('CORS: ' + url));
+    img.src = url;
+  });
+}
+
+// ─── AI DESCRIPTION ────────────────────────────────────────
+async function generateDescription(product, originalDesc) {
+  const attrs = (product.attributes || [])
+    .slice(0, 20)
+    .map(a => `${a.name}: ${a.value_name}`)
+    .join('\n');
+
+  const prompt = `Você é um especialista em SEO e GEO (Generative Engine Optimization) para e-commerce brasileiro.
+
+Gere uma descrição de produto COMPLETA e OTIMIZADA com base nos dados abaixo.
+
+DADOS DO PRODUTO:
+- Título: ${product.title}
+- Preço: R$ ${product.price}
+- Condição: ${product.condition === 'new' ? 'Novo' : 'Usado'}
+- Categoria ID: ${product.category_id}
+- Atributos:
+${attrs}
+- Descrição original do vendedor: ${originalDesc ? originalDesc.slice(0, 800) : '(sem descrição)'}
+
+INSTRUÇÕES:
+1. Escreva em português do Brasil, tom profissional mas acessível
+2. Inclua uma introdução cativante (1-2 parágrafos)
+3. Liste os principais benefícios e características em bullet points com emojis
+4. Inclua uma seção "Por que comprar" com argumentos de conversão
+5. Adicione naturalmente palavras-chave relevantes para SEO
+6. Escreva pensando em GEO: respostas que uma IA responderia se alguém perguntasse sobre o produto
+7. Finalize com chamada para ação
+8. Mínimo 300 palavras, máximo 600 palavras
+9. NÃO use travessão (—)
+
+Retorne APENAS o texto da descrição, sem títulos extras.`;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+
+  if (!response.ok) throw new Error('Erro na API de IA');
+  const data = await response.json();
+  return data.content?.[0]?.text || '';
+}
+
+// ─── MAIN FLOW ─────────────────────────────────────────────
+async function startFetch() {
+  const url = document.getElementById('url-input').value.trim();
+  if (!url) { showError('Cole a URL do anúncio antes de continuar.'); return; }
+
+  const itemId = extractItemId(url);
+  if (!itemId) { showError('Não consegui identificar o ID do anúncio. Cole a URL completa do produto.'); return; }
+
+  document.getElementById('btn-fetch').disabled = true;
+  document.getElementById('error-container').innerHTML = '';
+  document.getElementById('progress-wrap').classList.add('show');
+
+  try {
+    // STEP 1: Fetch ML API
+    setProgress(10, 'Consultando API do Mercado Livre...', 1);
+    const [product, originalDesc] = await Promise.all([
+      fetchMLProduct(itemId),
+      fetchMLDescription(itemId)
+    ]);
+
+    // STEP 2: Fetch seller
+    setProgress(30, 'Buscando dados do vendedor...', 2);
+    const seller = await fetchMLSeller(product.seller_id);
+
+    productData = { product, originalDesc, seller };
+
+    // Switch to result screen
+    setProgress(50, 'Dados carregados! Gerando descrição com IA...', 3);
+    populateBasicFields(product, seller);
+    showStep('result');
+
+    // STEP 3: Generate description
+    document.getElementById('desc-generating').style.display = 'block';
+    document.getElementById('f-desc').style.display = 'none';
+    const desc = await generateDescription(product, originalDesc);
+    document.getElementById('desc-generating').style.display = 'none';
+    document.getElementById('f-desc').style.display = 'block';
+    document.getElementById('f-desc').value = desc;
+
+    // STEP 4: Process images
+    setProgress(75, 'Processando imagens para 2000×2000...', 4);
+    await processImages(product.pictures || []);
+
+    setProgress(100, 'Concluído!', 5);
+    setTimeout(() => {
+      document.getElementById('progress-wrap').classList.remove('show');
+    }, 1500);
+
+  } catch (err) {
+    document.getElementById('progress-wrap').classList.remove('show');
+    document.getElementById('btn-fetch').disabled = false;
+    showError(err.message || 'Erro desconhecido. Tente novamente.');
+    console.error(err);
+  }
+}
+
+function showStep(id) {
+  document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+  document.getElementById('step-' + id).classList.add('active');
+}
+
+function populateBasicFields(product, seller) {
+  const fmt = (v) => v != null ? `R$ ${Number(v).toLocaleString('pt-BR', {minimumFractionDigits: 2})}` : '—';
+
+  document.getElementById('f-titulo').textContent = product.title || '—';
+  document.getElementById('f-id').textContent = product.id || '—';
+  document.getElementById('f-categoria').textContent = product.category_id || '—';
+  document.getElementById('f-preco').textContent = fmt(product.price);
+  document.getElementById('f-preco-orig').textContent = product.original_price ? fmt(product.original_price) : 'Sem desconto';
+  document.getElementById('f-condicao').textContent = product.condition === 'new' ? 'Novo' : product.condition === 'used' ? 'Usado' : product.condition || '—';
+  document.getElementById('f-estoque').textContent = product.available_quantity != null ? `${product.available_quantity} un.` : '—';
+  document.getElementById('f-link').textContent = product.permalink || '—';
+
+  const statusEl = document.getElementById('f-status');
+  const isActive = product.status === 'active';
+  statusEl.innerHTML = `<span class="status-tag ${isActive ? 'status-active' : 'status-paused'}">${isActive ? '● ATIVO' : '● PAUSADO'}</span>`;
+
+  // Seller
+  document.getElementById('f-seller').textContent = seller.nickname || product.seller_id || '—';
+  const rep = seller.seller_reputation?.power_seller_status;
+  document.getElementById('f-rep').textContent = rep || seller.seller_reputation?.level_id || '—';
+
+  // Attributes
+  const attrs = product.attributes || [];
+  if (attrs.length) {
+    const rows = attrs.map(a => {
+      const val = a.value_name || (a.values?.[0]?.name) || '—';
+      return `<tr><td>${a.name}</td><td>${val}</td></tr>`;
+    }).join('');
+    document.getElementById('attr-table').innerHTML = rows;
+  }
+}
+
+async function processImages(pictures) {
+  const grid = document.getElementById('images-grid');
+  grid.innerHTML = '';
+  processedImages = [];
+
+  for (let i = 0; i < pictures.length; i++) {
+    const pic = pictures[i];
+    const hiRes = getHighResUrl(pic.url || pic.secure_url || '');
+
+    const card = document.createElement('div');
+    card.className = 'img-card';
+    card.innerHTML = `
+      <img src="${hiRes}" alt="Imagem ${i+1}" loading="lazy" crossorigin="anonymous" />
+      <div class="img-overlay">
+        <span>2000×2000px</span>
+        <button class="img-dl-btn processing" id="dl-btn-${i}">processando...</button>
+      </div>`;
+    grid.appendChild(card);
+
+    // Process in background
+    upscaleImage(hiRes).then(blob => {
+      processedImages[i] = { blob, filename: `produto_imagem_${i+1}.jpg` };
+      const btn = document.getElementById(`dl-btn-${i}`);
+      if (btn) {
+        btn.className = 'img-dl-btn';
+        btn.textContent = '⬇ baixar';
+        btn.onclick = () => downloadBlob(blob, `produto_imagem_${i+1}.jpg`);
+      }
+    }).catch(() => {
+      // CORS fallback: direct link
+      processedImages[i] = null;
+      const btn = document.getElementById(`dl-btn-${i}`);
+      if (btn) {
+        btn.className = 'img-dl-btn';
+        btn.textContent = '⬇ link';
+        btn.onclick = () => window.open(hiRes, '_blank');
+      }
+    });
+  }
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function downloadAllImages() {
+  for (let i = 0; i < processedImages.length; i++) {
+    const img = processedImages[i];
+    if (img?.blob) {
+      setTimeout(() => downloadBlob(img.blob, img.filename), i * 300);
+    }
+  }
+}
+
+// ─── COPY HELPERS ──────────────────────────────────────────
+function copyField(fieldId) {
+  const map = { titulo: 'f-titulo' };
+  const el = document.getElementById(map[fieldId] || fieldId);
+  if (!el) return;
+  navigator.clipboard.writeText(el.textContent.trim()).then(() => flashCopy());
+}
+
+function copyDesc() {
+  const ta = document.getElementById('f-desc');
+  navigator.clipboard.writeText(ta.value).then(() => flashCopy());
+}
+
+function copyAttrs() {
+  const rows = document.querySelectorAll('#attr-table tr');
+  const text = Array.from(rows).map(r => {
+    const cells = r.querySelectorAll('td');
+    return cells.length === 2 ? `${cells[0].textContent}: ${cells[1].textContent}` : '';
+  }).filter(Boolean).join('\n');
+  navigator.clipboard.writeText(text).then(() => flashCopy());
+}
+
+function flashCopy() {
+  const btns = document.querySelectorAll('.btn-copy');
+  btns.forEach(b => { b.classList.add('copied'); b.textContent = '✓ copiado'; });
+  setTimeout(() => btns.forEach(b => { b.classList.remove('copied'); b.textContent = 'copiar'; }), 1500);
+}
+
+// Enter to submit
+document.getElementById('url-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') startFetch();
+});
+</script>
+</body>
+</html>
