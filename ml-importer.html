@@ -674,12 +674,16 @@ async function fetchWithProxy(url) {
 
 // ─── FETCH ML DATA ─────────────────────────────────────────
 async function fetchMLProduct(itemId) {
-  // Tenta item direto
   const url = `https://api.mercadolibre.com/items/${itemId}`;
   try {
-    return await fetchWithProxy(url);
+    const data = await fetchWithProxy(url);
+    // Valida que veio um produto real
+    if (!data || data.error) {
+      throw new Error(data?.message || `Item ${itemId} retornou erro da API`);
+    }
+    return data;
   } catch (e) {
-    throw new Error(`Anúncio não encontrado ou bloqueado. Verifique a URL e tente novamente.\nDetalhe: ${e.message}`);
+    throw new Error(`Nao foi possivel carregar o anuncio. Verifique a URL.\nDetalhe: ${e.message}`);
   }
 }
 
@@ -705,17 +709,59 @@ async function fetchMLSeller(sellerId) {
 }
 
 // Resolve URL com /p/MLB... (product page) para item real
-async function resolveProductPageToItem(productId) {
-  // /p/MLB29161377 -> busca itens desse produto
+async function resolveProductPageToItem(productId, originalUrl) {
+  // Estrategia 1: /products/{id}/items - retorna items canonicos do produto
   try {
     const data = await fetchWithProxy(
-      `https://api.mercadolibre.com/products/${productId}/items?limit=1`
+      `https://api.mercadolibre.com/products/${productId}/items?limit=5`
     );
     const items = data?.results || data?.items || [];
-    if (items.length) return items[0].id || items[0];
-    // fallback: tenta o próprio productId como item
-    return productId.replace(/^MLB/i, 'MLB');
-  } catch { return null; }
+    // Pega o primeiro item com status active, ou o primeiro disponivel
+    const active = items.find(i => (i.status || i) === 'active' || (typeof i === 'string'));
+    const itemId = typeof active === 'string' ? active : active?.id;
+    if (itemId && itemId.match(/^M[A-Z]{2}\d+/)) {
+      console.log('[ML] resolved via /products/items:', itemId);
+      return itemId;
+    }
+  } catch(e) { console.warn('[ML] /products/items failed:', e.message); }
+
+  // Estrategia 2: /products/{id} para pegar o titulo e buscar via search
+  try {
+    const prod = await fetchWithProxy(`https://api.mercadolibre.com/products/${productId}`);
+    if (prod?.name) {
+      console.log('[ML] product name:', prod.name);
+      const siteId = productId.substring(0,3); // MLB, MCO etc
+      const searchData = await fetchWithProxy(
+        `https://api.mercadolibre.com/sites/${siteId}/search?q=${encodeURIComponent(prod.name)}&limit=3`
+      );
+      const results = searchData?.results || [];
+      const best = results.find(r => r.status === 'active') || results[0];
+      if (best?.id) {
+        console.log('[ML] resolved via search:', best.id);
+        return best.id;
+      }
+    }
+  } catch(e) { console.warn('[ML] /products/ name search failed:', e.message); }
+
+  // Estrategia 3: busca pelo slug da URL original
+  if (originalUrl) {
+    try {
+      const slug = originalUrl.split('/').filter(Boolean).slice(-1)[0]?.split('?')[0];
+      const siteId = productId.substring(0,3);
+      const searchData = await fetchWithProxy(
+        `https://api.mercadolibre.com/sites/${siteId}/search?q=${encodeURIComponent(slug.replace(/-/g,' '))}&limit=3`
+      );
+      const results = searchData?.results || [];
+      const best = results.find(r => r.status === 'active') || results[0];
+      if (best?.id) {
+        console.log('[ML] resolved via slug search:', best.id);
+        return best.id;
+      }
+    } catch(e) { console.warn('[ML] slug search failed:', e.message); }
+  }
+
+  console.warn('[ML] could not resolve product page, using productId directly:', productId);
+  return productId;
 }
 
 // ─── IMAGE PROCESSING ─────────────────────────────────────
@@ -824,7 +870,7 @@ async function startFetch() {
     // Se for product page (/p/MLB...), resolve para um item real
     if (parsed.type === 'product') {
       setProgress(15, 'Resolvendo product page para item...', 1);
-      const resolved = await resolveProductPageToItem(parsed.id);
+      const resolved = await resolveProductPageToItem(parsed.id, url);
       if (resolved) itemId = resolved;
       // se nao resolveu, tenta usar o product id direto como item id
     }
@@ -833,6 +879,11 @@ async function startFetch() {
       fetchMLProduct(itemId),
       fetchMLDescription(itemId)
     ]);
+
+    // Se o produto veio sem titulo (item invalido), avisa mas continua
+    if (!product.title && !product.name) {
+      console.warn('[ML] produto sem titulo, pode ter sido mal resolvido. ID usado:', itemId);
+    }
 
     // STEP 2: Fetch seller
     setProgress(30, 'Buscando dados do vendedor...', 2);
@@ -878,7 +929,7 @@ function showStep(id) {
 function populateBasicFields(product, seller) {
   const fmt = (v) => v != null ? `R$ ${Number(v).toLocaleString('pt-BR', {minimumFractionDigits: 2})}` : '—';
 
-  document.getElementById('f-titulo').textContent = product.title || '—';
+  document.getElementById('f-titulo').textContent = product.title || product.name || '—';
   document.getElementById('f-id').textContent = product.id || '—';
   document.getElementById('f-categoria').textContent = product.category_id || '—';
   document.getElementById('f-preco').textContent = fmt(product.price);
